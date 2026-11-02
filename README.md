@@ -84,6 +84,7 @@ git config user.email "tu-email@alumnos.frlp.utn.edu.ar"
 goys-tp4-integrador/
 ├── README.md              # esta guía
 ├── progreso.md            # bitácora del grupo (qué hizo cada uno)
+├── propuesta/             # propuesta del proyecto (MD + PDF)
 ├── templates/             # templates de modalidad + documento + checklist
 ├── documento/             # documento final (PDF + fuente)
 ├── poster/                # póster A1 (editable + PDF) + guía
