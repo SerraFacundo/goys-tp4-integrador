@@ -5,9 +5,9 @@
 
 | | |
 |---|---|
-| **Grupo** | [Nombre del grupo] |
+| **Grupo** | Grupo 12 |
 | **Modalidad** | A — Proyecto de Desarrollo |
-| **Muestra** | Feria de Redes, GOYS '26 — 5 de noviembre de 2026, La Plata, Argentina |
+| **Muestra** | Feria de Redes, GOYS '26 — 17 de noviembre de 2026, La Plata, Argentina |
 
 **Integrantes**
 
