@@ -11,7 +11,7 @@
 |--------|-------------------|-----------------|
 | Facundo Serra | SerraFacundo | App, CI y firma de imágenes |
 | Martín Espamer | MartinEspamer | Host Proxmox, acceso Zero Trust, RKE2 y ArgoCD |
-| Agustín Manrique |  AgustinManrique | Nodos, repo, backups, matriz de evidencias y póster |
+| Agustín Manrique | AgustinManrique | Nodos, repo, backups, matriz de evidencias y póster |
 | Manuel Rebol |                   | Publicación, hardening del cluster e informe final |
 | Baltazar Molteni |                   | Automatización con Ansible, políticas de admisión y videos |
 
@@ -35,12 +35,14 @@
 | 2026-11-08 | Reparto de tareas en Trello | Martín Espamer |        |
 | 2026-11-08 | Etapa 4: imagen cloud de Ubuntu 24.04 verificada e importable en Proxmox | Martín Espamer |        |
 | 2026-11-08 | Documentación técnica de las etapas 1–4 en `docs/` | Martín Espamer |        |
+| 2026-11-09 | Integrantes, mails, Grupo 12 y fecha de la Feria (17/11) en `propuesta/README.md` | Agustín Manrique | `0774bee`, `f612449` |
+| 2026-11-09 | Cabecera de `propuesta.pdf` actualizada (integrantes, Grupo 12, fecha); contenido sin cambios | Agustín Manrique | `35e64a5` |
 
 ## 🚧 Pendientes / decisiones
 
 - [x] Definir tema definitivo
 - [x] Elegir modalidad (A, B o C)
-- [ ] Completar nombre del grupo e integrantes en la propuesta (PDF y MD)
+- [x] Completar nombre del grupo e integrantes en la propuesta (PDF y MD)
 - [ ] Agregar integrantes y docentes como colaboradores del repo
 - [x] Asignar roles (reparto en Trello; resumen en la tabla de integrantes)
 - [x] Etapas 1–3 de la propuesta (base, red, acceso admin) — ver [`docs/`](docs/README.md)
