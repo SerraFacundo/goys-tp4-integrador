@@ -10,6 +10,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 3. Acceso admin | [03-acceso-zero-trust.md](03-acceso-zero-trust.md) | Completa |
 | 4. Nodos | [04-nodos.md](04-nodos.md) | En curso |
 | — | [decisiones.md](decisiones.md) | Cambios respecto a la propuesta |
+| — | [modelo-amenazas.md](modelo-amenazas.md) | Modelo de amenazas STRIDE (N09) |
 
 ## Reglas
 
