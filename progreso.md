@@ -37,13 +37,14 @@
 | 2026-11-08 | Documentación técnica de las etapas 1–4 en `docs/` | Martín Espamer |        |
 | 2026-11-09 | Integrantes, mails, Grupo 12 y fecha de la Feria (17/11) en `propuesta/README.md` | Agustín Manrique | `0774bee`, `f612449` |
 | 2026-11-09 | Cabecera de `propuesta.pdf` actualizada (integrantes, Grupo 12, fecha); contenido sin cambios | Agustín Manrique | `35e64a5` |
+| 2026-11-10 | R02: App X definida (libro de visitas en Go + Redis) en `docs/07-app.md` | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones
 
 - [x] Definir tema definitivo
 - [x] Elegir modalidad (A, B o C)
 - [x] Completar nombre del grupo e integrantes en la propuesta (PDF y MD)
-- [ ] Agregar integrantes y docentes como colaboradores del repo
+- [x] Agregar integrantes y docentes como colaboradores del repo
 - [x] Asignar roles (reparto en Trello; resumen en la tabla de integrantes)
 - [x] Etapas 1–3 de la propuesta (base, red, acceso admin) — ver [`docs/`](docs/README.md)
 - [ ] Etapa 4: plantilla cloud-init y 4 nodos
