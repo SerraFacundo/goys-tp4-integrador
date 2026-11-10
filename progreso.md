@@ -11,7 +11,7 @@
 |--------|-------------------|-----------------|
 | Facundo Serra | SerraFacundo | App, CI y firma de imágenes |
 | Martín Espamer | MartinEspamer | Host Proxmox, acceso Zero Trust, RKE2 y ArgoCD |
-| Agustín Manrique |                   | Nodos, repo, backups, matriz de evidencias y póster |
+| Agustín Manrique |  AgustinManrique | Nodos, repo, backups, matriz de evidencias y póster |
 | Manuel Rebol |                   | Publicación, hardening del cluster e informe final |
 | Baltazar Molteni |                   | Automatización con Ansible, políticas de admisión y videos |
 
