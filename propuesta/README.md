@@ -13,10 +13,11 @@
 
 | Nombre | Mail |
 |--------|------|
-| Facundo Serra | [usuario]@alumnos.frlp.utn.edu.ar |
-| Martín [Apellido] | [usuario]@alumnos.frlp.utn.edu.ar |
-| [Integrante 3] | [usuario]@alumnos.frlp.utn.edu.ar |
-| [Integrante 4] | [usuario]@alumnos.frlp.utn.edu.ar |
+| Facundo Serra | facundoserra@alu.frlp.utn.edu.ar |
+| Martín Espamer | martinespamer@alu.frlp.utn.edu.ar |
+| Agustín Manrique | agustinmanrique@alu.frlp.utn.edu.ar |
+| Baltazar Molteni | baltazarmolteni@alu.frlp.utn.edu.ar |
+| Manuel Rebol | manuelrebol@alu.frlp.utn.edu.ar |
 
 ---
 
