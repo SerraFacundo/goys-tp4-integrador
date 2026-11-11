@@ -37,6 +37,8 @@
 | 2026-11-08 | Documentación técnica de las etapas 1–4 en `docs/` | Martín Espamer |        |
 | 2026-11-09 | Integrantes, mails, Grupo 12 y fecha de la Feria (17/11) en `propuesta/README.md` | Agustín Manrique | `0774bee`, `f612449` |
 | 2026-11-09 | Cabecera de `propuesta.pdf` actualizada (integrantes, Grupo 12, fecha); contenido sin cambios | Agustín Manrique | `35e64a5` |
+| 2026-11-09 | C01: Cloudflare One Client (WARP) instalado y enrolado en el team del grupo | Baltazar Molteni |        |
+| 2026-11-10 | N09: modelo de amenazas STRIDE por componente en [`docs/modelo-amenazas.md`](docs/modelo-amenazas.md) | Baltazar Molteni |        |
 | 2026-11-10 | R02: App X definida (libro de visitas en Go + Redis) en `docs/07-app.md` | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones

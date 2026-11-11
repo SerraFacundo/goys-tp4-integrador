@@ -11,6 +11,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 4. Nodos | [04-nodos.md](04-nodos.md) | En curso |
 | 7. App | [07-app.md](07-app.md) | App definida |
 | — | [decisiones.md](decisiones.md) | Cambios respecto a la propuesta |
+| — | [modelo-amenazas.md](modelo-amenazas.md) | Modelo de amenazas STRIDE (N09) |
 
 ## Reglas
 
