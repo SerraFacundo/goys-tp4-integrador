@@ -28,7 +28,7 @@ spec:
           type: RuntimeDefault
       containers:
         - name: api
-          image: ghcr.io/serrafacundo/goys-app:3d2ad79
+          image: ghcr.io/serrafacundo/goys-app:f59f3fc
           ports:
             - name: http
               containerPort: 8080
