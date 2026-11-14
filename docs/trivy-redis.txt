@@ -1,0 +1,14 @@
+# Trivy 0.65.0 · 2026-11-14 · imagen redis:7.4.12-alpine@sha256:e4ee3e03ce8f75471f40937a7c6b2b0e500390b6812fcdf5cb32c01295ded446
+# trivy image --severity HIGH,CRITICAL
+
+Report Summary
+
+┌─────────────────────────────────┬────────┬─────────────────┬─────────┐
+│             Target              │  Type  │ Vulnerabilities │ Secrets │
+├─────────────────────────────────┼────────┼─────────────────┼─────────┤
+│ /work/redis.tar (alpine 3.22.8) │ alpine │        0        │    -    │
+└─────────────────────────────────┴────────┴─────────────────┴─────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
