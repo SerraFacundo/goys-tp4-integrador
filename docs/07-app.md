@@ -124,6 +124,7 @@ Pruebas del 14/11:
 
 - [Corrida en la rama `feat/n01-n02-ci`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640659601): build y Trivy en verde; los pasos de `main` se saltean.
 - [Prueba negativa en `test/n01-trivy-rojo`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640848421): con la base `debian:10.0`, Trivy encuentra 17 CRITICAL y el job falla antes de publicar.
+- [Corrida en `main`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43641318416) tras el merge de la PR #92: publicó y firmó `goys-app:3d2ad79`, y el bot commiteó el bump en `c5ec049`. `cosign verify` con la identidad del workflow da OK.
 
 La firma usa la identidad OIDC del workflow, sin claves que guardar. Queda registrada en Rekor, el log público de Sigstore. Para verificar una imagen:
 
