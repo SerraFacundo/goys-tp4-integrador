@@ -289,6 +289,82 @@ El nodo aparece `NotReady` hasta que Cilium arranca en él (menos de un minuto).
 | `cilium-health status` | `4/4 reachable`, `1/1` en Node (ICMP y 4240) y en Endpoints (VXLAN 8472) para los 4 nodos |
 | CoreDNS | Segunda réplica en `wk-01` con IP de pod `10.42.1.x`: cada nodo tiene su propio rango de pods |
 
+## Verificación del cluster (M10)
+
+Control de salud con los 4 nodos unidos, antes de montar el resto encima.
+
+### Nodos
+
+```
+$ kubectl get nodes -o wide
+NAME    STATUS   ROLES                AGE   VERSION          INTERNAL-IP   EXTERNAL-IP   OS-IMAGE             KERNEL-VERSION              CONTAINER-RUNTIME
+cp-01   Ready    control-plane,etcd   74m   v1.36.6+rke2r1   10.10.10.11   <none>        Ubuntu 24.04.5 LTS   6.8.0-149-generic (amd64)   containerd://2.3.7-k3s1
+wk-01   Ready    <none>               28m   v1.36.6+rke2r1   10.10.10.21   <none>        Ubuntu 24.04.5 LTS   6.8.0-149-generic (amd64)   containerd://2.3.7-k3s1
+wk-02   Ready    <none>               10m   v1.36.6+rke2r1   10.10.10.22   <none>        Ubuntu 24.04.5 LTS   6.8.0-149-generic (amd64)   containerd://2.3.7-k3s1
+wk-03   Ready    <none>               10m   v1.36.6+rke2r1   10.10.10.23   <none>        Ubuntu 24.04.5 LTS   6.8.0-149-generic (amd64)   containerd://2.3.7-k3s1
+```
+
+![kubectl get nodes -o wide](../capturas/05-cluster/m10-01-get-nodes-wide.png)
+
+### `kube-system`
+
+```bash
+kubectl -n kube-system get pods -o wide
+kubectl -n kube-system get pods --field-selector=status.phase!=Running,status.phase!=Succeeded   # No resources found
+```
+
+- **Cilium:** 4 pods `cilium` (uno por nodo, con la IP del nodo porque usan la red del host) y `cilium-operator` con 1 réplica. 0 reinicios.
+- **CoreDNS:** 2 réplicas en nodos distintos (`cp-01` y `wk-01`) y el autoscaler.
+- **metrics-server** y **snapshot-controller** `Running`. Sin `kube-proxy`.
+- Los `helm-install-rke2-*` quedan en `Completed`: son los jobs que instalaron los charts. El de `snapshot-controller` tuvo 2 reinicios al arrancar, mientras esperaba los CRDs que instala el otro job.
+
+`kubectl top nodes` responde con datos de los 4 nodos, así que metrics-server llega a todos los kubelets:
+
+```
+NAME    CPU(cores)   CPU(%)   MEMORY(bytes)   MEMORY(%)
+cp-01   124m         6%       2065Mi          52%
+wk-01   25m          1%       495Mi           16%
+wk-02   20m          1%       505Mi           17%
+wk-03   19m          0%       480Mi           16%
+```
+
+`cp-01` ya usa la mitad de su memoria con el control plane solo. Hay que seguirlo cuando entren ArgoCD y el resto.
+
+### Cilium y kube-proxy
+
+```bash
+for p in $(kubectl -n kube-system get pods -l k8s-app=cilium -o name); do
+  kubectl -n kube-system exec $p -c cilium-agent -- cilium-dbg status \
+    | grep -E 'KubeProxyReplacement|Cluster health|Controller Status|Kubernetes:|Cilium:'
+done
+```
+
+En los 4 agentes: `Kubernetes: Ok`, `Cilium: Ok 1.20.4`, `KubeProxyReplacement: True [eth0 10.10.10.x (Direct Routing)]` con la IP de cada nodo, `Controller Status` todo `healthy` y `Cluster health: 4/4 reachable`.
+
+### DNS desde un pod
+
+Pod `busybox:1.36.1` en un namespace de prueba `m10-dns-test`. El namespace **no está exento** de PSA, así que el pod también prueba que un `securityContext` que cumple `restricted` es aceptado: `runAsNonRoot`, usuario 65534, `seccompProfile: RuntimeDefault`, `allowPrivilegeEscalation: false`, `capabilities.drop: ["ALL"]` y `readOnlyRootFilesystem`. Quedó `Running` en `wk-03` (IP `10.42.4.6`).
+
+`/etc/resolv.conf` del pod:
+
+```
+search m10-dns-test.svc.cluster.local svc.cluster.local cluster.local lab.internal
+nameserver 10.43.0.10
+options ndots:5
+```
+
+| Prueba | Resultado |
+|--------|-----------|
+| `nslookup kubernetes.default` | `NXDOMAIN` (ver nota) |
+| `nslookup kubernetes.default.svc.cluster.local` | `10.43.0.1`, respondido por `10.43.0.10` |
+| `wget https://kubernetes.default` | `Connecting to kubernetes.default (10.43.0.1:443)`: el nombre corto resuelve y la conexión TCP llega a la API |
+
+Nota: el `nslookup` de busybox usa su propio cliente DNS y no aplica la línea `search`, así que consulta `kubernetes.default.` literal y CoreDNS responde, con razón, que no existe. Las aplicaciones usan el resolver de la libc, que sí completa con `search`, y ese caso es el que prueba `wget`. Para repetir la prueba con busybox, usar el nombre completo.
+
+`lab.internal` en `search` no lo agrega Kubernetes: viene del `resolv.conf` de los nodos.
+
+Al terminar se borró el namespace (y con él el pod): `kubectl delete namespace m10-dns-test`. Después, `kubectl get namespace m10-dns-test` da `NotFound`.
+
 ## Pendiente
 
 - **Volumen del audit log:** en reposo crece unos 358 KB/min (~500 MB por día). Con la rotación entran unos 2 días de historia. Revisar qué genera los eventos recientes y sumar reglas `None` si hace falta, antes de juntar evidencia para P03.
