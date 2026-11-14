@@ -45,8 +45,9 @@
 | 2026-11-14 | Etapa 4: plantilla cloud-init (VM 9000) y nodos cp-01, wk-01..03 con IP fija y SSH por clave; falta salida a internet | Agustín Manrique |        |
 | 2026-11-14 | R03: código de la App X en `app/` (Go + Redis), Dockerfile y `compose.yaml` con restricciones de seguridad | Facundo Serra | `cc54665` |
 | 2026-11-14 | R04 y R05: Dockerfile con bases por digest y `HEALTHCHECK`; Trivy sin CRITICAL ni HIGH (Go 1.27.4) | Facundo Serra | `b9afd5c` |
-| 2026-11-14 | R06: imágenes `goys-app` y `goys-redis` publicadas en GHCR con tag fijo | Facundo Serra |        |
-| 2026-11-14 | R07: Deployments, Services y HTTPRoute de la App X en `k8s/app/`, validados con kubeconform | Facundo Serra |        |
+| 2026-11-14 | R06: imágenes `goys-app` y `goys-redis` publicadas en GHCR con tag fijo | Facundo Serra | `c5cd0ac` |
+| 2026-11-14 | R07: Deployments, Services y HTTPRoute de la App X en `k8s/app/`, validados con kubeconform | Facundo Serra | `c5cd0ac` |
+| 2026-11-14 | N01 y N02: workflow `ci.yml` con build, Trivy, push a GHCR, firma keyless con cosign y bump del tag en `k8s/app` | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones
 

@@ -1,0 +1,93 @@
+# N01 + N02: build, escaneo con Trivy, push a GHCR, firma con cosign y bump del tag en k8s/app.
+# En cualquier rama solo buildea y escanea; publicar, firmar y bumpear pasa únicamente en main.
+name: ci
+
+on:
+  push:
+    paths:
+      - app/**
+      - .github/workflows/ci.yml
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: false # dos bumps en paralelo pisarían el mismo commit
+
+permissions:
+  contents: read
+
+env:
+  IMAGE: ghcr.io/serrafacundo/goys-app
+
+jobs:
+  app:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write # bump del tag en k8s/app
+      packages: write # push a GHCR
+      id-token: write # firma keyless de cosign (N02)
+    steps:
+      # Actions fijadas por SHA; el comentario dice la versión.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Tag corto
+        id: tag
+        run: echo "tag=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
+
+      - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4.4.1
+
+      - name: Build (sin publicar)
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: app
+          load: true
+          tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Trivy (falla si hay CRITICAL)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          image-ref: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
+          severity: CRITICAL
+          exit-code: "1"
+
+      - name: Login a GHCR
+        if: github.ref == 'refs/heads/main'
+        uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6 # v4.7.0
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push a GHCR
+        if: github.ref == 'refs/heads/main'
+        id: push
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: app
+          push: true
+          tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
+          cache-from: type=gha
+
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+        if: github.ref == 'refs/heads/main'
+
+      - name: Firmar por digest (N02)
+        if: github.ref == 'refs/heads/main'
+        env:
+          DIGEST: ${{ steps.push.outputs.digest }}
+        run: cosign sign --yes "${IMAGE}@${DIGEST}"
+
+      - name: Bump del tag en k8s/app
+        if: github.ref == 'refs/heads/main'
+        env:
+          TAG: ${{ steps.tag.outputs.tag }}
+        run: |
+          sed -i -E "s#(image: ${IMAGE}):[0-9a-f]+#\1:${TAG}#" k8s/app/api.yaml
+          git diff --quiet && { echo "El tag ya estaba actualizado"; exit 0; }
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -am "ci: goys-app ${TAG} en k8s/app [skip ci]"
+          git pull --rebase origin main
+          git push origin HEAD:main
