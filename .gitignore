@@ -16,6 +16,9 @@ Thumbs.db
 credentials*
 *credenciales*
 
+# Configuración local de Claude Code
+.claude/settings.local.json
+
 # Temporales / backup
 *.tmp
 *.bak
