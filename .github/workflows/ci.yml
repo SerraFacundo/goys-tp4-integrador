@@ -66,9 +66,12 @@ jobs:
         uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
         with:
           context: app
-          push: true
           tags: ${{ env.IMAGE }}:${{ steps.tag.outputs.tag }}
           cache-from: type=gha
+          # Formato docker: podman descarta el HEALTHCHECK de las imágenes OCI.
+          # La attestation de provenance exige OCI, así que se desactiva (la firma la da cosign).
+          outputs: type=registry,oci-mediatypes=false
+          provenance: false
 
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         if: github.ref == 'refs/heads/main'
