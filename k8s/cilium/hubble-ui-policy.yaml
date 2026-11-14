@@ -1,0 +1,29 @@
+# La política default del perfil CIS en kube-system solo deja entrar tráfico
+# del mismo namespace. Esta excepción abre la UI de Hubble (puerto 8081 del pod,
+# NodePort 31235) a la red interna 10.10.10.0/24, que solo se alcanza por WARP.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: hubble-ui-red-interna
+  namespace: kube-system
+spec:
+  endpointSelector:
+    matchLabels:
+      k8s-app: hubble-ui
+  ingress:
+    # Acceso directo al nodo donde corre la UI: el origen llega sin traducir
+    # (por ejemplo cf-admin, 10.10.10.5, que es por donde entra WARP).
+    - fromCIDR:
+        - 10.10.10.0/24
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP
+    # Acceso por el NodePort de otro nodo: Cilium reenvía el paquete con origen
+    # traducido a ese nodo, así que llega con identidad remote-node.
+    - fromEntities:
+        - remote-node
+      toPorts:
+        - ports:
+            - port: "8081"
+              protocol: TCP

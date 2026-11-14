@@ -131,7 +131,15 @@ spec:
     k8sServicePort: 6443
     operator:
       replicas: 1
-    # M11: hubble (relay + ui)
+    hubble:            # M11
+      enabled: true
+      relay:
+        enabled: true
+      ui:
+        enabled: true
+        service:
+          type: NodePort
+          nodePort: 31235
     # M13: gatewayAPI
 ```
 
@@ -364,6 +372,64 @@ Nota: el `nslookup` de busybox usa su propio cliente DNS y no aplica la línea `
 `lab.internal` en `search` no lo agrega Kubernetes: viene del `resolv.conf` de los nodos.
 
 Al terminar se borró el namespace (y con él el pod): `kubectl delete namespace m10-dns-test`. Después, `kubectl get namespace m10-dns-test` da `NotFound`.
+
+## Hubble (M11)
+
+Hubble registra los flujos que ve Cilium en cada nodo: origen, destino, puerto y si el paquete pasó (`FORWARDED`) o se bloqueó (`DROPPED`, con el motivo). El **relay** junta los flujos de los 4 nodos y la **UI** los dibuja. Es la evidencia de las NetworkPolicies (R13, R15).
+
+### Activación
+
+Se agregó el bloque `hubble` al `HelmChartConfig` de Cilium (ver [Cilium](#cilium)). Desde la notebook, sin dejar el archivo en ningún lado:
+
+```bash
+ssh goys@10.10.10.11 'sudo tee /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml >/dev/null' <<'EOF'
+...
+EOF
+```
+
+RKE2 detecta el cambio y vuelve a aplicar el chart. En menos de un minuto quedan `hubble-relay` (1/1) y `hubble-ui` (2/2) en `Running`, y el Service `hubble-ui` como `NodePort 80:31235/TCP`.
+
+### Acceso a la UI
+
+La UI no tiene login, así que no se publica por el quick tunnel. Queda como NodePort en las IPs de los nodos, que solo se alcanzan desde `10.10.10.0/24`, es decir, por WARP con un mail del grupo. Es de solo lectura: muestra flujos pero no permite cambiar nada del cluster.
+
+Con el NodePort solo no alcanza. El perfil CIS crea en `kube-system` la NetworkPolicy `default-network-policy`, que solo admite tráfico del mismo namespace, y Hubble mostró el rechazo:
+
+```
+10.10.10.5:42890 (world) <> kube-system/hubble-ui-...:8081 policy-verdict:none INGRESS DENIED (TCP Flags: SYN)
+10.10.10.5:42890 (world) <> kube-system/hubble-ui-...:8081 Policy denied DROPPED (TCP Flags: SYN)
+```
+
+La política de RKE2 no se toca (la regenera RKE2). Se agrega una excepción solo para la UI: [`k8s/cilium/hubble-ui-policy.yaml`](../k8s/cilium/hubble-ui-policy.yaml), una `CiliumNetworkPolicy` que abre el puerto 8081 de `hubble-ui` desde `10.10.10.0/24` (acceso directo al nodo del pod, por ejemplo desde `cf-admin`) y desde `remote-node` (NodePort de otro worker, que reenvía el paquete con su propia identidad).
+
+```bash
+kubectl apply -f k8s/cilium/hubble-ui-policy.yaml
+```
+
+URL: `http://10.10.10.21:31235` (o `.22`, `.23`). Por `cp-01` no responde: Cilium clasifica como `world` el tráfico que reenvía desde ese nodo y la política no lo admite. Para la UI se usan las IPs de los workers.
+
+### CLI
+
+`hubble` v1.20.4 en la notebook, verificado con su `.sha256sum`. `kubectl port-forward` al relay cumple la función de `cilium hubble port-forward` sin instalar también el CLI de Cilium:
+
+```bash
+kubectl -n kube-system port-forward svc/hubble-relay 4245:80 >/dev/null &
+hubble status --server localhost:4245
+hubble observe --server localhost:4245 --last 20
+```
+
+### Verificación
+
+| Prueba | Resultado |
+|--------|-----------|
+| `hubble status` | `Healthcheck: Ok`, `Connected Nodes: 4/4`, ~23 flows/s |
+| `hubble observe --last 20` | Health de Cilium (4240), workers → API (6443/9345), metrics-server → kubelets (10250), relay → nodos (4244). Todo `FORWARDED` |
+| `curl` a `10.10.10.21:31235` y `.22`, `.23` | `200` |
+| UI por WARP, namespace `kube-system` | Mapa `world → hubble-ui → hubble-relay` con flujos `forwarded` y `4/4 nodes` |
+
+El mapa por ahora tiene solo esos tres elementos porque dibuja tráfico entre pods, y el resto del tráfico de sistema es de los nodos. Se llena cuando esté la app (api → redis).
+
+![UI de Hubble](../capturas/05-cluster/m11-01-hubble-ui.png)
 
 ## Pendiente
 
