@@ -1,8 +1,10 @@
-# Etapa 5 — Cluster RKE2: server en `cp-01`
+# Etapa 5 — Cluster RKE2: server en `cp-01` y agents en `wk-01..03`
 
 **Responsable:** Martín Espamer · **Fecha:** 14/11/2026
 
 **Listo cuando (M08, #23):** el API server responde, los Secrets están cifrados, el audit log escribe eventos y el token del nodo no sale del servidor.
+
+**Listo cuando (M09, #24):** `wk-01`, `wk-02` y `wk-03` registrados en el cluster.
 
 ## Diseño
 
@@ -207,7 +209,86 @@ KUBECONFIG=~/.kube/goys-tp4.yaml kubectl get nodes
 | `ls -lL /var/lib/rancher/rke2/server/node-token` | `-rw------- root root`. No se copia a ningún lado |
 | `kubectl get nodes` desde la notebook por WARP | `cp-01 Ready` |
 
+## Agents en `wk-01..03` (M09)
+
+### Red entre nodos
+
+Antes de instalar se revisó si algo filtra el tráfico entre las VMs:
+
+- **Firewall de Proxmox:** activo a nivel datacenter (`cluster.fw` con `enable: 1` y `policy_in: DROP`), pero esa política protege al host. No hay `<VMID>.fw` para 111 ni para 121–123, así que el firewall de las VMs está apagado y `firewall=1` en la placa no aplica reglas.
+- **Dentro de Ubuntu:** `ufw` inactivo.
+- **Prueba desde `wk-01`:** `ping` a `cp-01` sin pérdida y `nc -zv` a 9345 (supervisor) y 6443 (API) con `succeeded`.
+
+Los puertos entre todos los nodos (10250 kubelet, 8472/udp VXLAN y 4240 health de Cilium) se validan al final con `cilium-health`.
+
+### Instalación
+
+El mismo `install.sh` se bajó una vez en la notebook, se revisó y se copió a cada worker (sha256 `45f5c14cd04aa3de4b164d5a7412113ab415bebbe5cbaa952448a5dabb57876a`, 765 líneas). Instala por tarball en `/usr/local` y verifica el checksum del tarball antes de descomprimirlo.
+
+```bash
+# notebook
+curl -sfL https://get.rke2.io -o install.sh
+for ip in 21 22 23; do
+  scp install.sh goys@10.10.10.$ip:/tmp/install.sh
+  ssh goys@10.10.10.$ip 'sudo INSTALL_RKE2_VERSION=v1.36.6+rke2r1 INSTALL_RKE2_TYPE=agent sh /tmp/install.sh'
+done
+```
+
+### Preparación CIS y configuración
+
+Los sysctls CIS hacen falta en cada worker: con `profile: cis` el kubelet corre con `--protect-kernel-defaults` y no arranca si el kernel no tiene esos valores. El usuario `etcd` no se crea en los agents porque etcd solo corre en el server.
+
+```bash
+# en cada worker
+cp /usr/local/share/rke2/rke2-cis-sysctl.conf /etc/sysctl.d/60-rke2-cis.conf
+systemctl restart systemd-sysctl
+```
+
+`/etc/rancher/rke2/config.yaml` (permiso `600`, dueño root):
+
+```yaml
+server: https://10.10.10.11:9345
+profile: cis
+node-ip: 10.10.10.21   # .22 y .23 en wk-02 y wk-03
+token: <node-token de cp-01>
+```
+
+Audit, cifrado, `tls-san` y Cilium no van en el agent: son del control plane, y el server despliega Cilium en cada nodo como DaemonSet.
+
+### Token
+
+El `node-token` (`K10<hash de la CA>::server:<secreto>`) es la credencial para sumar nodos. El hash de la CA le permite al agent comprobar que habla con el `cp-01` real. Se pasa de `cp-01` a cada worker con un pipe SSH a SSH, sin mostrarlo en pantalla ni guardarlo en la notebook:
+
+```bash
+ssh goys@10.10.10.11 'sudo cat /var/lib/rancher/rke2/server/node-token' \
+  | ssh goys@10.10.10.21 'sed "s/^/token: /" | sudo tee -a /etc/rancher/rke2/config.yaml >/dev/null'
+```
+
+Solo queda en `/var/lib/rancher/rke2/server/node-token` en `cp-01` y en el `config.yaml` de cada worker, con permiso `600` y dueño root. Para comprobarlo sin mostrarlo: `grep -c '^token: K10'` da `1`.
+
+### Arranque
+
+Primero `wk-01` solo, para ver errores en un nodo y medir la RAM de `cp-01`. Después `wk-02` y `wk-03` juntos.
+
+```bash
+systemctl enable --now rke2-agent
+```
+
+El nodo aparece `NotReady` hasta que Cilium arranca en él (menos de un minuto). Con `wk-01` unido, `cp-01` tenía 2385 MB `available`.
+
+`ROLES <none>` en los workers es normal: RKE2 solo etiqueta los roles del server.
+
+### Verificación
+
+| Prueba | Resultado |
+|--------|-----------|
+| `systemctl is-active rke2-agent` (3 workers) | `active` |
+| `rke2 --version` (3 workers) | `v1.36.6+rke2r1`, mismo commit que el server |
+| `kubectl get nodes -o wide` | 4 nodos `Ready`, `v1.36.6+rke2r1`, INTERNAL-IP `.11`, `.21`, `.22` y `.23` |
+| `kubectl -n kube-system get pods -l k8s-app=cilium -o wide` | 4 pods `Running` (uno por nodo), 0 reinicios. Sin `kube-proxy` en los workers |
+| `cilium-health status` | `4/4 reachable`, `1/1` en Node (ICMP y 4240) y en Endpoints (VXLAN 8472) para los 4 nodos |
+| CoreDNS | Segunda réplica en `wk-01` con IP de pod `10.42.1.x`: cada nodo tiene su propio rango de pods |
+
 ## Pendiente
 
 - **Volumen del audit log:** en reposo crece unos 358 KB/min (~500 MB por día). Con la rotación entran unos 2 días de historia. Revisar qué genera los eventos recientes y sumar reglas `None` si hace falta, antes de juntar evidencia para P03.
-- **M09:** los workers se unen con el `node-token`, que se pasa a cada nodo sin dejarlo en el repo ni en Trello.
