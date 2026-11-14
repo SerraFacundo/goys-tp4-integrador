@@ -1,5 +1,5 @@
 # N01 + N02: build, escaneo con Trivy, push a GHCR, firma con cosign y bump del tag en k8s/app.
-# En cualquier rama solo buildea y escanea; publicar, firmar y bumpear pasa únicamente en main.
+# En cualquier rama solo buildea y escanea. Publicar, firmar y bumpear pasa únicamente en main.
 name: ci
 
 on:
