@@ -15,3 +15,5 @@ La propuesta en PDF no se actualiza. Estos puntos cambiaron o se definieron dura
 | Despliegue | — | GitOps con ArgoCD | Nadie aplica manifiestos a mano |
 | UI de Hubble | — | NodePort `31235`, solo desde `10.10.10.0/24` (WARP) | La UI no tiene login; no se publica por el quick tunnel |
 | IP del Gateway | LB IPAM + L2 announcements o host network | Host network, listener en el puerto `8000` de cada nodo | Menos piezas que un pool de IPs con anuncios L2. Puerto alto porque Envoy corre sin `NET_BIND_SERVICE` |
+| Permisos de `kubectl` | — | `cluster-admin` por usuario, binding por nombre | Casi todas las tareas instalan recursos de todo el cluster; el objetivo de M14 es que cada acción tenga dueño en el audit log |
+| Claves de `kubectl` | Cada integrante genera su clave privada | Las generó Martín y entregó cada kubeconfig por WhatsApp; certificados de 60 días | El resto del grupo no estaba y M14 traba todas sus tareas. Mensajes y copias locales borrados después de la entrega |
