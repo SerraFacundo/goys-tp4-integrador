@@ -120,6 +120,11 @@ El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) corre en c
 
 Si Trivy encuentra una vulnerabilidad CRITICAL, el job falla y no se publica ni se firma nada. Las actions están fijadas por SHA, con la versión en un comentario. `main` no tiene protección de rama, así que el bot puede pushear el bump. Si se agrega protección, hay que permitirle el push al bot o cambiar el bump por una PR automática.
 
+Pruebas del 14/11:
+
+- [Corrida en la rama `feat/n01-n02-ci`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640659601): build y Trivy en verde; los pasos de `main` se saltean.
+- [Prueba negativa en `test/n01-trivy-rojo`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640848421): con la base `debian:10.0`, Trivy encuentra 17 CRITICAL y el job falla antes de publicar.
+
 La firma usa la identidad OIDC del workflow, sin claves que guardar. Queda registrada en Rekor, el log público de Sigstore. Para verificar una imagen:
 
 ```bash
