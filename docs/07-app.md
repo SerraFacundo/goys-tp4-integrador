@@ -118,7 +118,7 @@ El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) corre en c
 | Firma keyless con cosign, por digest | no | sí |
 | Bump del tag en `k8s/app/api.yaml` y commit `[skip ci]` | no | sí |
 
-Si Trivy encuentra una vulnerabilidad CRITICAL, el job falla y no se publica ni se firma nada. Las actions están fijadas por SHA, con la versión en un comentario. `main` no tiene protección de rama, así que el bot puede pushear el bump. Si se agrega protección, hay que permitirle el push al bot o cambiar el bump por una PR automática.
+Si Trivy encuentra una vulnerabilidad CRITICAL, el job falla y no se publica ni se firma nada. Las actions están fijadas por SHA, con la versión en un comentario. La imagen se publica en formato docker y sin attestation de provenance, porque podman descarta el `HEALTHCHECK` de las imágenes OCI. `main` no tiene protección de rama, así que el bot puede pushear el bump. Si se agrega protección, hay que permitirle el push al bot o cambiar el bump por una PR automática.
 
 Pruebas del 14/11:
 
