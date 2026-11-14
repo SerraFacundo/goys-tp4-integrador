@@ -27,7 +27,7 @@ services:
 
   redis:
     # shortcut: imagen de Docker Hub para la prueba local; en el cluster va la copia en ghcr.io (N07).
-    image: docker.io/library/redis:7-alpine
+    image: docker.io/library/redis:7.4.12-alpine@sha256:e4ee3e03ce8f75471f40937a7c6b2b0e500390b6812fcdf5cb32c01295ded446
     command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?definir REDIS_PASSWORD en .env}", "--save", "", "--appendonly", "no"]
     environment:
       REDISCLI_AUTH: ${REDIS_PASSWORD}

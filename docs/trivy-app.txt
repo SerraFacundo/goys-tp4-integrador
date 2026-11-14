@@ -1,0 +1,16 @@
+# Trivy 0.65.0 · 2026-11-14 · imagen goys-app (build de app/Dockerfile, Go 1.27.4 sobre distroless/static-debian12:nonroot)
+# trivy image --severity HIGH,CRITICAL
+
+Report Summary
+
+┌──────────────────────────────┬──────────┬─────────────────┬─────────┐
+│            Target            │   Type   │ Vulnerabilities │ Secrets │
+├──────────────────────────────┼──────────┼─────────────────┼─────────┤
+│ /work/app.tar (debian 12.15) │  debian  │        0        │    -    │
+├──────────────────────────────┼──────────┼─────────────────┼─────────┤
+│ app                          │ gobinary │        0        │    -    │
+└──────────────────────────────┴──────────┴─────────────────┴─────────┘
+Legend:
+- '-': Not scanned
+- '0': Clean (no security findings detected)
+
