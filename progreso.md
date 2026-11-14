@@ -49,7 +49,7 @@
 | 2026-11-14 | R07: Deployments, Services y HTTPRoute de la App X en `k8s/app/`, validados con kubeconform | Facundo Serra | `c5cd0ac` |
 | 2026-11-14 | N01 y N02: workflow `ci.yml` con build, Trivy, push a GHCR, firma keyless con cosign y bump del tag en `k8s/app` | Facundo Serra | `11c5d55` |
 | 2026-11-14 | N01 y N02 probados en `main`: imagen `goys-app:3d2ad79` publicada y firmada, bump automático (`c5ec049`) y `cosign verify` OK | Facundo Serra |        |
-| 2026-11-14 | C04: capturas de R06, N01 y N02 en `capturas/07-app/` y de C01 (`warp-cli status`) en `capturas/03-acceso/` | Facundo Serra |        |
+| 2026-11-14 | C04: capturas de R06, N01 y N02 en `capturas/07-app/` y de C01 (`warp-cli status` y cliente WARP conectado) en `capturas/03-acceso/` | Facundo Serra |        |
 | 2026-11-14 | CI publica la imagen en formato docker para que podman respete el `HEALTHCHECK` (hallado al sacar la captura de R04) | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones
