@@ -1,0 +1,44 @@
+# Mismas restricciones que en el cluster (PSA restricted). Ver docs/07-app.md.
+name: goys-app
+
+services:
+  api:
+    build: .
+    image: goys-app:local
+    ports:
+      - "8080:8080"
+    environment:
+      REDIS_ADDR: redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:?definir REDIS_PASSWORD en .env}
+    user: "10001:10001"
+    read_only: true
+    tmpfs: [/tmp]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    healthcheck:
+      test: ["CMD", "/app", "-healthcheck"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  redis:
+    # shortcut: imagen de Docker Hub para la prueba local; en el cluster va la copia en ghcr.io (N07).
+    image: docker.io/library/redis:7-alpine
+    command: ["redis-server", "--requirepass", "${REDIS_PASSWORD:?definir REDIS_PASSWORD en .env}", "--save", "", "--appendonly", "no"]
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD}
+    user: "999:999"
+    read_only: true
+    tmpfs: [/tmp, /data]
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    mem_limit: 64m
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3

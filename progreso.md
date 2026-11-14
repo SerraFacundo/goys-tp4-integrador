@@ -39,10 +39,11 @@
 | 2026-11-09 | Cabecera de `propuesta.pdf` actualizada (integrantes, Grupo 12, fecha); contenido sin cambios | Agustín Manrique | `35e64a5` |
 | 2026-11-09 | C01: Cloudflare One Client (WARP) instalado y enrolado en el team del grupo | Baltazar Molteni |        |
 | 2026-11-10 | N09: modelo de amenazas STRIDE por componente en [`docs/modelo-amenazas.md`](docs/modelo-amenazas.md) | Baltazar Molteni |        |
-| 2026-11-10 | R02: App X definida (libro de visitas en Go + Redis) en `docs/07-app.md` | Facundo Serra |        |
+| 2026-11-10 | R02: App X definida (libro de visitas en Go + Redis) en `docs/07-app.md` | Facundo Serra | `7ea44db` |
 | 2026-11-14 | R01: carpetas `k8s/app`, `k8s/cloudflared`, `k8s/hardening` y `ansible/` | Agustín Manrique |        |
 | 2026-11-14 | R12: namespace `app` con Pod Security `restricted` en `k8s/hardening/` | Agustín Manrique |        |
 | 2026-11-14 | Etapa 4: plantilla cloud-init (VM 9000) y nodos cp-01, wk-01..03 con IP fija y SSH por clave; falta salida a internet | Agustín Manrique |        |
+| 2026-11-14 | R03: código de la App X en `app/` (Go + Redis), Dockerfile y `compose.yaml` con restricciones de seguridad | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones
 
