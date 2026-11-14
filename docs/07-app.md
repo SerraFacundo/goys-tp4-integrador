@@ -105,3 +105,33 @@ podman run --rm -v $PWD/k8s/app:/m:ro,Z ghcr.io/yannh/kubeconform:v0.6.7 -strict
   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' /m
 # Summary: 5 resources found in 3 files - Valid: 5, Invalid: 0, Errors: 0, Skipped: 0
 ```
+
+## CI y firma (N01, N02)
+
+El workflow [`.github/workflows/ci.yml`](../.github/workflows/ci.yml) corre en cada push que toca `app/` o el propio workflow.
+
+| Paso | En cualquier rama | Solo en `main` |
+|------|-------------------|----------------|
+| Build de la imagen con tag `<sha corto>` | sí | sí |
+| Trivy con `severity: CRITICAL` y `exit-code: 1`, antes de publicar | sí | sí |
+| Push a `ghcr.io/serrafacundo/goys-app:<sha corto>` con `GITHUB_TOKEN` | no | sí |
+| Firma keyless con cosign, por digest | no | sí |
+| Bump del tag en `k8s/app/api.yaml` y commit `[skip ci]` | no | sí |
+
+Si Trivy encuentra una vulnerabilidad CRITICAL, el job falla y no se publica ni se firma nada. Las actions están fijadas por SHA, con la versión en un comentario. `main` no tiene protección de rama, así que el bot puede pushear el bump. Si se agrega protección, hay que permitirle el push al bot o cambiar el bump por una PR automática.
+
+Pruebas del 14/11:
+
+- [Corrida en la rama `feat/n01-n02-ci`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640659601): build y Trivy en verde; los pasos de `main` se saltean.
+- [Prueba negativa en `test/n01-trivy-rojo`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640848421): con la base `debian:10.0`, Trivy encuentra 17 CRITICAL y el job falla antes de publicar.
+
+La firma usa la identidad OIDC del workflow, sin claves que guardar. Queda registrada en Rekor, el log público de Sigstore. Para verificar una imagen:
+
+```bash
+cosign verify \
+  --certificate-identity-regexp '^https://github.com/SerraFacundo/goys-tp4-integrador/\.github/workflows/' \
+  --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+  ghcr.io/serrafacundo/goys-app:<tag>
+```
+
+La firma garantiza dos cosas: que la imagen la construyó el workflow de este repo y que no cambió desde entonces. No garantiza que la imagen esté libre de vulnerabilidades; eso lo controla Trivy. Redis no se firma, porque es una copia de la imagen oficial y no sale de este CI.
