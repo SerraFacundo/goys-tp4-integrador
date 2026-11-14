@@ -140,7 +140,10 @@ spec:
         service:
           type: NodePort
           nodePort: 31235
-    # M13: gatewayAPI
+    gatewayAPI:        # M13
+      enabled: true
+      hostNetwork:
+        enabled: true
 ```
 
 Sin kube-proxy, el Service `kubernetes` lo implementa el propio Cilium, así que Cilium necesita la dirección real del apiserver (`k8sServiceHost`/`k8sServicePort`). Un solo `cilium-operator` alcanza para el lab y ahorra RAM en `cp-01`.
@@ -430,6 +433,50 @@ hubble observe --server localhost:4245 --last 20
 El mapa por ahora tiene solo esos tres elementos porque dibuja tráfico entre pods, y el resto del tráfico de sistema es de los nodos. Se llena cuando esté la app (api → redis).
 
 ![UI de Hubble](../capturas/05-cluster/m11-01-hubble-ui.png)
+
+## Gateway API (M13)
+
+El Gateway es la puerta de entrada HTTP a la app: la `HTTPRoute` de R07 se engancha a él y el quick tunnel (R09) le apunta. Lo implementa el Envoy que va dentro de cada agente de Cilium.
+
+### CRDs
+
+Gateway API v1.6.3, canal *standard*: la versión que soporta Cilium 1.20 (la misma que traía `rke2-traefik-crd` y se borró en M08). El bundle oficial está en el repo, en [`k8s/gateway-api/standard-install.yaml`](../k8s/gateway-api/standard-install.yaml) (sha256 `356c2b8e286a964dc20995435659ad1095386329974793af10bbfe3eff977fe5`). Trae 10 CRDs y la `ValidatingAdmissionPolicy` `safe-upgrades`, que impide pisarlos con una versión anterior o experimental.
+
+```bash
+curl -sfL -o k8s/gateway-api/standard-install.yaml \
+  https://github.com/kubernetes-sigs/gateway-api/releases/download/v1.6.3/standard-install.yaml
+kubectl apply --server-side -f k8s/gateway-api/standard-install.yaml
+```
+
+Van antes de activar Gateway API en Cilium: si al arrancar no los encuentra, desactiva el soporte. `--server-side` porque los CRDs superan el límite de tamaño de la anotación del apply normal.
+
+### Cilium
+
+Bloque `gatewayAPI` con `hostNetwork.enabled` en el `HelmChartConfig` (ver [Cilium](#cilium)), aplicado igual que en M11. Después se reinician operator y agentes:
+
+```bash
+kubectl -n kube-system get cm cilium-config -o yaml | grep enable-gateway-api   # esperar "true"
+kubectl -n kube-system rollout restart deployment/cilium-operator
+kubectl -n kube-system rollout restart ds/cilium
+```
+
+El orden importa. La primera vez el operator se reinició antes de que RKE2 actualizara `cilium-config`, arrancó sin Gateway API y no registró los CRDs `ciliumenvoyconfigs` y `ciliumclusterwideenvoyconfigs`. Los agentes nuevos de `wk-01` y `wk-03` quedaron `0/1` con `Still waiting for Cilium Operator to register CRDs`. Se resolvió reiniciando solo el operator: creó los dos CRDs y los agentes terminaron de arrancar solos.
+
+### Gateway
+
+[`k8s/gateway-api/gateway.yaml`](../k8s/gateway-api/gateway.yaml): namespace `gateway` con PSA `restricted` (no tiene pods) y el Gateway `goys-gateway` con un listener HTTP en el puerto `8000`. Solo acepta rutas del namespace `app` (`allowedRoutes` por `kubernetes.io/metadata.name`). Nombre y namespace coinciden con los `parentRefs` de [`k8s/app/httproute.yaml`](../k8s/app/httproute.yaml).
+
+En host network el Envoy de cada nodo escucha en `<IP del nodo>:8000`. Se eligió sobre LB IPAM + L2 announcements por tener menos piezas (ver [decisiones](decisiones.md)). El puerto es alto porque Envoy no tiene la capability para abrir puertos menores a 1024. Cilium también crea el Service `cilium-gateway-goys-gateway` (`NodePort 8000:32216`), al que puede apuntar `cloudflared` desde dentro del cluster.
+
+### Verificación
+
+| Prueba | Resultado |
+|--------|-----------|
+| `kubectl get crd \| grep gateway.networking.k8s.io` | 10 CRDs |
+| `kubectl get gatewayclass` | `cilium io.cilium/gateway-controller ACCEPTED True` |
+| `kubectl get gateway -A` | `goys-gateway cilium 10.10.10.11 PROGRAMMED True` |
+| `rollout status ds/cilium` | 4/4 agentes actualizados |
+| `curl http://10.10.10.21:8000/` | `404`: Envoy responde y todavía no hay rutas |
 
 ## Pendiente
 

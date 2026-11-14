@@ -13,3 +13,5 @@ La propuesta en PDF no se actualiza. Estos puntos cambiaron o se definieron dura
 | Publicación de la app | Túnel con hostname público, 2 réplicas, token en Secret | Quick tunnel `*.trycloudflare.com`, 1 réplica, sin token | Gratis y sin dominio; la URL cambia al reiniciar el pod |
 | Dominio | Necesario | No se compra por ahora | Si se quiere URL fija: `.com.ar` y túnel con nombre |
 | Despliegue | — | GitOps con ArgoCD | Nadie aplica manifiestos a mano |
+| UI de Hubble | — | NodePort `31235`, solo desde `10.10.10.0/24` (WARP) | La UI no tiene login; no se publica por el quick tunnel |
+| IP del Gateway | LB IPAM + L2 announcements o host network | Host network, listener en el puerto `8000` de cada nodo | Menos piezas que un pool de IPs con anuncios L2. Puerto alto porque Envoy corre sin `NET_BIND_SERVICE` |
