@@ -8,7 +8,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 1. Base | [01-host-proxmox.md](01-host-proxmox.md) | Completa |
 | 2. Red | [02-red-interna.md](02-red-interna.md) | Completa |
 | 3. Acceso admin | [03-acceso-zero-trust.md](03-acceso-zero-trust.md) | Completa |
-| 4. Nodos | [04-nodos.md](04-nodos.md) | En curso |
+| 4. Nodos | [04-nodos.md](04-nodos.md) | Plantilla y 4 nodos creados; falta salida a internet |
 | 7. App | [07-app.md](07-app.md) | App definida |
 | — | [decisiones.md](decisiones.md) | Cambios respecto a la propuesta |
 | — | [modelo-amenazas.md](modelo-amenazas.md) | Modelo de amenazas STRIDE (N09) |

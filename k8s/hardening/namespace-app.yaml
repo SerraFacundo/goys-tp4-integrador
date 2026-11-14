@@ -1,0 +1,17 @@
+# R12: namespace de la App X con Pod Security Admission en "restricted".
+# - enforce: rechaza cualquier pod que no cumpla el perfil restricted
+#   (privilegiado, root, hostPath, capabilities extra, sin seccomp, etc.).
+# - audit / warn: dejan registro y avisan en kubectl con el mismo perfil.
+# Lo aplica ArgoCD (Application de k8s/hardening, M20). Prueba: R14.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: app
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
