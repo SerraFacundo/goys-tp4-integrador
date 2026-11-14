@@ -12,6 +12,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 7. App | [07-app.md](07-app.md) | App definida |
 | — | [decisiones.md](decisiones.md) | Cambios respecto a la propuesta |
 | — | [modelo-amenazas.md](modelo-amenazas.md) | Modelo de amenazas STRIDE (N09) |
+| — | [runbook-rotacion-token-admin.md](runbook-rotacion-token-admin.md) | Runbook: rotación del token de `lab-admin` (P04) |
 
 ## Reglas
 

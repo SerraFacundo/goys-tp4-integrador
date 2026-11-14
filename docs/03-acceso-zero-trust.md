@@ -64,4 +64,4 @@ Con WARP: web en `https://10.10.10.1:8006` y SSH a `10.10.10.x`.
 | `ip route get 10.10.10.1` con / sin WARP | `dev CloudflareWARP` / sale por la red local |
 | Desde fuera de casa (datos del celular), con WARP | Acceso a web y SSH OK |
 
-Pendiente: `nmap` a la IP pública de la casa desde afuera (sin puertos abiertos) y rotación documentada del token del túnel.
+Pendiente: `nmap` a la IP pública de la casa desde afuera (sin puertos abiertos). La rotación del token del túnel está en el [runbook](runbook-rotacion-token-admin.md).
