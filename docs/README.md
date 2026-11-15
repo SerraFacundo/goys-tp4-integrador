@@ -9,11 +9,12 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 2. Red | [02-red-interna.md](02-red-interna.md) | Completa |
 | 3. Acceso admin | [03-acceso-zero-trust.md](03-acceso-zero-trust.md) | Completa |
 | 4. Nodos | [04-nodos.md](04-nodos.md) | Plantilla y 4 nodos creados; falta salida a internet |
-| 5. Cluster | [05-cluster.md](05-cluster.md) | Completa: server y agents, Hubble, Gateway API y acceso por integrante (M08–M11, M13–M15) |
+| 5. Cluster | [05-cluster.md](05-cluster.md) | Completa: server y agents, Hubble, Gateway API, acceso por integrante y ArgoCD (M08–M11, M13–M17, M19–M21) |
 | 7. App | [07-app.md](07-app.md) | App definida |
 | — | [decisiones.md](decisiones.md) | Cambios respecto a la propuesta |
 | — | [modelo-amenazas.md](modelo-amenazas.md) | Modelo de amenazas STRIDE (N09) |
 | — | [runbook-rotacion-token-admin.md](runbook-rotacion-token-admin.md) | Runbook: rotación del token de `lab-admin` (P04) |
+| — | [runbook-argocd.md](runbook-argocd.md) | Runbook: operar ArgoCD (R21) |
 
 ## Reglas
 
