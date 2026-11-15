@@ -566,6 +566,33 @@ Cada integrante guarda su archivo como `~/.kube/goys-tp4.yaml` con permiso `600`
 | `kubectl --kubeconfig <nombre>.kubeconfig auth whoami` | `Username <nombre>`, `Groups [system:authenticated]` |
 | `kubectl --kubeconfig <nombre>.kubeconfig get nodes` | 4 nodos `Ready` |
 
-## Pendiente
+## Volumen del audit log
 
-- **Volumen del audit log:** en reposo crece unos 358 KB/min (~500 MB por día). Con la rotación entran unos 2 días de historia. Revisar qué genera los eventos recientes y sumar reglas `None` si hace falta, antes de juntar evidencia para P03.
+En reposo el log crecía unos 358 KB/min (~500 MB por día, unos 2 días de historia con la rotación). Agrupando los últimos 20.000 eventos por usuario, verbo y recurso:
+
+```bash
+ssh goys@10.10.10.11 'sudo tail -n 20000 /var/lib/rancher/rke2/server/logs/audit.log' \
+  | jq -r '[.user.username, .verb, (.objectRef.resource // .requestURI), .level] | @tsv' \
+  | sort | uniq -c | sort -rn | head -15
+```
+
+Casi todo eran `watch` de `system:kube-controller-manager` sobre recursos de Traefik (`middlewares`, `ingressroutetcps`, `tlsstores`, `traefikservices`, etc.), unas 350 veces cada uno y con respuesta `404`. Los CRDs de Traefik ya no existen (`kubectl get crd | grep -i traefik` no devuelve nada): el controller-manager seguía con la lista de tipos de cuando `rke2-traefik-crd` estaba instalado y reintentaba cada pocos segundos.
+
+Solución: reiniciar el contenedor del controller-manager, que RKE2 vuelve a levantar solo. No hizo falta tocar la política de audit.
+
+```bash
+ssh goys@10.10.10.11 sudo bash -s <<'EOF'
+export CRI_CONFIG_FILE=/var/lib/rancher/rke2/agent/etc/crictl.yaml
+C=/var/lib/rancher/rke2/bin/crictl
+$C stop $($C ps --name kube-controller-manager -q)
+EOF
+```
+
+| Prueba | Antes | Después |
+|--------|-------|---------|
+| Crecimiento de `audit.log` (`stat -c %s` con 60 s de diferencia) | ~358 KB/min | 105 KB/min (~150 MB por día, 6–7 días de historia) |
+| Eventos sobre `middlewares` | Cada ~30 s, `404` | Ninguno en los 6 minutos posteriores al reinicio |
+
+Lo que queda es ruido normal del control plane (por ejemplo `system:apiserver get /openapi/v3`). No se filtra, porque una política nueva obliga a reiniciar `rke2-server`.
+
+Al desactivar un chart que trae CRDs, conviene reiniciar el controller-manager después de borrar los CRDs.
