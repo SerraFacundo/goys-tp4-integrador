@@ -80,7 +80,8 @@ Hay cuatro fronteras: **internet → Cloudflare**, **Cloudflare → red del lab*
 | I | Secrets en el repo público | Sealed Secrets: en Git solo va el secreto cifrado | 🔄 N08 |
 | R | Cambios en el cluster sin rastro | Audit log del API server + GitOps: todo cambio queda en un commit | 🔄 M08, M20 |
 | T | Cambio manual en el cluster que nadie registra | ArgoCD con sync automático revierte el drift | 🔄 M21 |
-| E | kubeconfig de admin compartido | Un kubeconfig por integrante, `kubectl` solo por WARP | 🔄 M14 |
+| E | kubeconfig de admin compartido | Un kubeconfig por integrante (certificado de 60 días), `kubectl` solo por WARP | ✅ M14 |
+| E | Filtración de un kubeconfig entregado por WhatsApp | Mensajes borrados, certificado de 60 días; se corta el acceso borrando su `ClusterRoleBinding` | ⚠️ M14 |
 | E | Configuración insegura del cluster | Perfil `cis` de RKE2 + reporte de kube-bench | 🔄 M08, M12 |
 | D | Falta de RAM (16 GB para todo) | Requests/limits obligatorios; revisión de consumo | 🔄 N07, M22 |
 | D | Caída de un worker | 2 réplicas + PodDisruptionBudget | 🔄 N04 |
