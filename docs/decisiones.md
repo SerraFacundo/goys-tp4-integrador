@@ -25,3 +25,4 @@ La propuesta en PDF no se actualiza. Estos puntos cambiaron o se definieron dura
 | Instalación de ArgoCD | — | `v3.6.1` fija, manifiesto sin HA, aplicado a mano una vez | Alguien tiene que instalar ArgoCD antes de que ArgoCD aplique el resto. Sin HA alcanza para el lab y ahorra RAM |
 | PSA en `argocd` | — | `restricted`, sin exención | Los pods de ArgoCD 3.6 cumplen el perfil (`--dry-run=server` sin avisos) |
 | UI de ArgoCD | — | NodePort `30443` en un Service aparte, solo por `10.10.10.0/24` (WARP); TLS de ArgoCD | Fuera del Gateway de la app, al que apunta el quick tunnel. Mismo esquema que Hubble, sin LB IPAM |
+| Applications de ArgoCD | — | App-of-apps (`root`) con `hardening`, `app` y `cloudflared`; sync automático con `prune` y `selfHeal` | Las Applications quedan versionadas y solo `root` se aplica a mano |

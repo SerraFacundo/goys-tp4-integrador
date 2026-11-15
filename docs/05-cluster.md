@@ -12,6 +12,8 @@
 
 **Listo cuando (M19, #34):** el repo del grupo aparece `Successful` en ArgoCD.
 
+**Listo cuando (M20, #35):** las Applications `hardening`, `app` y `cloudflared` aparecen en la UI de ArgoCD.
+
 ## Reinstalar desde cero (R17)
 
 Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su sección.
@@ -31,6 +33,7 @@ Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su 
 | 11 | notebook | Namespace e instalación de ArgoCD `v3.6.1`, cambio de la contraseña de `admin` ([ArgoCD](#argocd-m16)) |
 | 12 | notebook | `kubectl apply -f k8s/argocd/server-nodeport.yaml` ([UI de ArgoCD](#ui-de-argocd-por-warp-m17)) |
 | 13 | notebook | `kubectl apply -f k8s/argocd/repo-goys.yaml` ([Repo en ArgoCD](#repo-del-grupo-en-argocd-m19)) |
+| 14 | notebook | Parche de health en `argocd-cm` y `kubectl apply -f k8s/argocd/root.yaml` ([Applications](#applications-de-argocd-m20)). Desde acá ArgoCD aplica todo lo demás |
 
 En una reinstalación, Hubble y Gateway API ya van en el `HelmChartConfig` del paso 3. Los CRDs de Gateway API tienen que estar antes de que arranque el operator; si no, Cilium desactiva el soporte y hay que reiniciar el operator después de aplicarlos (paso 9). Una CA nueva invalida los kubeconfig anteriores: hay que generar certificados nuevos para cada integrante.
 
@@ -718,3 +721,29 @@ git         https://github.com/SerraFacundo/goys-tp4-integrador  false     false
 ```
 
 Carpetas que van a leer las Applications (M20): `k8s/app`, `k8s/cloudflared` (vacía por ahora, con `.gitkeep`) y `k8s/hardening`.
+
+## Applications de ArgoCD (M20)
+
+Desde acá nadie aplica manifiestos a mano. Las Applications también están versionadas: una Application `root` (app-of-apps) lee [`k8s/argocd/apps/`](../k8s/argocd/apps/) y crea las demás. `root` es lo único que se aplica a mano, una vez.
+
+| Application | Carpeta | Destino | Wave |
+|-------------|---------|---------|------|
+| `hardening` | `k8s/hardening` | (cada manifiesto trae su namespace) | 0 |
+| `app` | `k8s/app` | `app` | 1 |
+| `cloudflared` | `k8s/cloudflared` | `cloudflared` | 1 |
+
+- **Sync automático** con `prune: true` (borra del cluster lo que se saca de git) y `selfHeal: true` (deshace cambios hechos a mano). Lo prueba M21. Reintenta hasta 5 veces si un sync falla.
+- **Orden:** `hardening` va en la wave 0 porque define el Namespace `app` con PSA `restricted` (R12). `app` y `cloudflared` van en la wave 1. Ninguna usa `CreateNamespace=true`: cada Namespace lo define un solo manifiesto.
+- **Health de Applications:** desde la v1.8 ArgoCD no evalúa la salud de una Application hija, y sin eso `root` pasa a la wave 1 sin esperar a que `hardening` esté `Healthy`. Se agrega el health check en `argocd-cm` con [`k8s/argocd/argocd-cm-application-health.yaml`](../k8s/argocd/argocd-cm-application-health.yaml).
+- **Sin finalizer:** borrar una Application no borra lo que desplegó (por ejemplo, el Namespace `app`).
+- **Proyecto `default`:** el repo es uno solo y todos los integrantes son `cluster-admin`; un AppProject propio no restringiría nada que importe.
+
+```bash
+kubectl -n argocd patch cm argocd-cm --type merge --patch-file k8s/argocd/argocd-cm-application-health.yaml
+kubectl apply -f k8s/argocd/root.yaml
+argocd app list
+```
+
+`root` lee la rama `main`: se aplica después de que `k8s/argocd/apps/` esté mergeado.
+
+Estado esperado mientras falten piezas de otros: `app` queda `Degraded` hasta que exista el Secret `redis-auth` (N08), y `cloudflared` queda vacía hasta que se mergee el quick tunnel (R09).
