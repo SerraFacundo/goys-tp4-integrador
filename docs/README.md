@@ -17,6 +17,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | — | [hardening-tetragon.md](hardening-tetragon.md) | Detección de shells en pods con Tetragon (N05): probada con capturas; falta repetirla con `redis` (N08) |
 | — | [runbook-rotacion-token-admin.md](runbook-rotacion-token-admin.md) | Runbook: rotación del token de `lab-admin` (P04) |
 | — | [runbook-argocd.md](runbook-argocd.md) | Runbook: operar ArgoCD (R21) |
+| — | [backups.md](backups.md) | Backups: snapshots de etcd, backup de VMs y restore probado (N03) |
 
 ## Reglas
 
