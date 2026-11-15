@@ -1,0 +1,17 @@
+# M16: namespace de ArgoCD.
+# Mismo perfil PSA que el resto del cluster (restricted, lo impone el perfil CIS).
+# Los pods de ArgoCD v3.6.1 cumplen restricted, así que no se exenta.
+# Se aplica a mano una sola vez junto con la instalación de ArgoCD (bootstrap);
+# después ArgoCD es el único que aplica manifiestos.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest

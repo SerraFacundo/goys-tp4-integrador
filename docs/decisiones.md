@@ -22,3 +22,5 @@ La propuesta en PDF no se actualiza. Estos puntos cambiaron o se definieron dura
 | Política de audit | Audit log del API server | Política propia: ruido en `None`, Secrets/ConfigMaps en `Metadata`, cambios en `Request` | Sin política no se registra nada; con `RequestResponse` el valor de los Secrets queda en el log |
 | Permisos de `kubectl` | — | `cluster-admin` por usuario, binding por nombre | Casi todas las tareas instalan recursos de todo el cluster; el objetivo de M14 es que cada acción tenga dueño en el audit log |
 | Claves de `kubectl` | Cada integrante genera su clave privada | Las generó Martín y entregó cada kubeconfig por WhatsApp; certificados de 60 días | El resto del grupo no estaba y M14 traba todas sus tareas. Mensajes y copias locales borrados después de la entrega |
+| Instalación de ArgoCD | — | `v3.6.1` fija, manifiesto sin HA, aplicado a mano una vez | Alguien tiene que instalar ArgoCD antes de que ArgoCD aplique el resto. Sin HA alcanza para el lab y ahorra RAM |
+| PSA en `argocd` | — | `restricted`, sin exención | Los pods de ArgoCD 3.6 cumplen el perfil (`--dry-run=server` sin avisos) |
