@@ -1,7 +1,12 @@
 # N05: detectar una shell ejecutada dentro de un contenedor (amenaza R del modelo STRIDE).
 # - Hook: security_bprm_check, el chequeo LSM que el kernel hace antes de cada exec.
-#   El path es el del archivo real: en Alpine "sh" es un link a busybox, por eso
-#   también se busca "/busybox" (en la app, solo la imagen de redis tiene shell).
+# - Selector 1 (arranque de la shell): el binario a ejecutar termina en un nombre de shell.
+#   Dispara aunque la shell no ejecute nada, pero el evento sale a nombre de "runc init"
+#   (todavía no es la shell) y sin pod: runc es un binario del host.
+# - Selector 2 (la shell ejecuta un comando): el proceso que hace el exec ES una shell.
+#   Ese evento sí trae el pod, la shell y el comando (en el argumento linux_binprm).
+# - Las dos listas incluyen "/dash" y "/busybox" por si el path llega resuelto
+#   (en Ubuntu "sh" es un link a dash, en Alpine a busybox).
 # - matchNamespaces: solo procesos fuera del PID namespace del host, o sea dentro de
 #   un contenedor. Las shells de los nodos (SSH, systemd) no generan eventos.
 # - Sin acción de bloqueo: solo registra (Post). La respuesta es el simulacro de N06.
@@ -28,6 +33,20 @@ spec:
         - matchArgs:
             - index: 0
               operator: Postfix
+              values:
+                - "/sh"
+                - "/bash"
+                - "/dash"
+                - "/ash"
+                - "/zsh"
+                - "/busybox"
+          matchNamespaces:
+            - namespace: Pid
+              operator: NotIn
+              values:
+                - host_ns
+        - matchBinaries:
+            - operator: Postfix
               values:
                 - "/sh"
                 - "/bash"
