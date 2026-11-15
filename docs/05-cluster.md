@@ -708,7 +708,7 @@ URL: `https://10.10.10.21:30443` (o `.22`, `.23`). Usuario `admin`, contraseña 
 |--------|-----------|---------|
 | Con WARP, `https://10.10.10.21:30443` | Abre la UI de ArgoCD `v3.6.1` | [`m17-1-ui-con-warp.png`](../capturas/05-cluster/m17-1-ui-con-warp.png) |
 | Sin WARP, misma URL | `ERR_CONNECTION_TIMED_OUT` | [`m17-2-ui-sin-warp.png`](../capturas/05-cluster/m17-2-ui-sin-warp.png) |
-| Desde la URL `*.trycloudflare.com` | Pendiente de R09 (quick tunnel) | — |
+| Desde la URL `*.trycloudflare.com`, sin WARP: `/applications` y `/api/version` | `503 no healthy upstream` del Envoy del Gateway, no ArgoCD: el quick tunnel solo llega a `goys-gateway`, que no tiene ruta a `argocd-server` | [`m17-3-ui-por-tunel.png`](../capturas/05-cluster/m17-3-ui-por-tunel.png) |
 
 ## Repo del grupo en ArgoCD (M19)
 
