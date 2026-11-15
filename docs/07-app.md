@@ -163,6 +163,7 @@ Pruebas del 14/11:
 - [Corrida en la rama `feat/n01-n02-ci`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640659601): build y Trivy en verde; los pasos de `main` se saltean.
 - [Prueba negativa en `test/n01-trivy-rojo`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640848421): con la base `debian:10.0`, Trivy encuentra 17 CRITICAL y el job falla antes de publicar.
 - [Corrida en `main`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43641318416) tras el merge de la PR #92: publicó y firmó `goys-app:3d2ad79`, y el bot commiteó el bump en `c5ec049`. `cosign verify` con la identidad del workflow da OK.
+- Ciclo GitOps completo, 15/11: un pie de página nuevo en la app (PR #126) disparó el CI en `main`, que publicó y firmó `goys-app:fa923d5` y commiteó el bump `2e87192`. ArgoCD lo detectó y desplegó las réplicas nuevas sin pasos manuales. Capturas: [Application `app` `Synced` y `Healthy`](../capturas/07-app/n01-04-argo-synced.png) y [pod nuevo con la imagen `fa923d5`](../capturas/07-app/n01-05-argo-pod-imagen.png).
 
 La firma usa la identidad OIDC del workflow, sin claves que guardar. Queda registrada en Rekor, el log público de Sigstore. Para verificar una imagen:
 
