@@ -119,15 +119,30 @@ podman run --rm -v $PWD/k8s/app:/m:ro,Z ghcr.io/yannh/kubeconform:v0.6.7 -strict
 
 Límite: Redis tiene una sola réplica y guarda los datos en `emptyDir`. Si se cae el worker donde corre, la app devuelve error hasta que Kubernetes lo reprograme en otro worker, y los mensajes se pierden. Para la prueba se apaga un worker que no tenga a Redis. Replicarlo pide Sentinel o un StatefulSet con volumen, y el cluster no tiene StorageClass ni RAM de sobra (M22).
 
-La prueba en el cluster queda pendiente hasta que Argo despliegue la app (R08) y exista el Secret `redis-auth` (N08). Pasos, en el issue N04:
+### Prueba en el cluster (15/11)
+
+Un loop pedía la URL pública del quick tunnel una vez por segundo y mostraba la hora y el código HTTP. En otra terminal, `watch` mostraba nodos y pods. Para las dos pruebas se eligió un worker con una réplica de `api` y sin Redis ni `cloudflared`.
 
 ```bash
-kubectl -n app get pods -o wide                 # réplicas de api en workers distintos; anotar dónde está redis
-while true; do curl -s -o /dev/null -w '%{http_code}\n' http://10.10.10.21:8000/; sleep 1; done   # en otra terminal
-kubectl drain <worker sin redis> --ignore-daemonsets --delete-emptydir-data
-kubectl uncordon <worker>
-# después: Stop de la VM desde Proxmox, esperar NotReady, volver a prenderla
+while true; do echo "$(date +%T) $(curl -s -o /dev/null -w '%{http_code}' --max-time 5 https://<url>.trycloudflare.com/)"; sleep 1; done
+watch -n 5 'kubectl get nodes; echo; kubectl -n app get pods -o wide'
+kubectl drain wk-02 --ignore-daemonsets --delete-emptydir-data   # prueba 3
+kubectl uncordon wk-02
+# prueba 4: Stop de wk-03 desde Proxmox, esperar NotReady y el reemplazo, Start
 ```
+
+| Prueba | Resultado | Captura |
+|--------|-----------|---------|
+| Drain de `wk-02` | El PDB deja desalojar una réplica; la otra sigue atendiendo y el reemplazo arranca en otro worker. Loop: todo `200` | [`n04-01-drain-pdb-loop.png`](../capturas/07-app/n04-01-drain-pdb-loop.png) |
+| Stop de `wk-03` | El nodo pasa a `NotReady`. Durante unos 47 s, cerca de la mitad de los pedidos falla (`000` por timeout o `503`); después, todo `200` | [`n04-02-nodo-notready-loop.png`](../capturas/07-app/n04-02-nodo-notready-loop.png) |
+| Reemplazo | A los 5 min el pod de `wk-03` pasa a `Terminating` y aparece uno nuevo en `wk-02`. Loop: todo `200` | [`n04-03-reemplazo-pod.png`](../capturas/07-app/n04-03-reemplazo-pod.png) |
+
+Lo que salió de la prueba:
+
+- **Drain:** en el primer intento hubo un `503` en el segundo del desalojo. El pod de `api` cerraba apenas recibía SIGTERM, y Envoy todavía le mandaba tráfico. Se agregó `preStop.sleep` de 5 s (PR #127) y el drain pasó sin cortes.
+- **Caída dura:** el corte de unos 47 s es esperable. Cuando el nodo muere, nadie avisa: el control plane espera unos 40 s sin noticias del kubelet antes de marcarlo `NotReady` y sacar sus pods de los endpoints. Mientras tanto, Envoy reparte los pedidos entre las dos réplicas y la mitad va al pod muerto. Para achicarlo se podrían usar reintentos en la HTTPRoute o *outlier detection* en Envoy; no se hizo.
+- **`cloudflared` también es un punto único:** el quick tunnel tiene una réplica. En el primer intento de drain se drenó `wk-03`, donde corría `cloudflared`; el pod se reprogramó y el túnel cambió de URL. Mientras tanto el loop dio `530`. Con quick tunnel no se pueden tener dos réplicas con la misma URL.
+- **Redis:** una sola réplica, como se explicó arriba. No se probó su caída.
 
 ## CI y firma (N01, N02)
 
@@ -148,6 +163,7 @@ Pruebas del 14/11:
 - [Corrida en la rama `feat/n01-n02-ci`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640659601): build y Trivy en verde; los pasos de `main` se saltean.
 - [Prueba negativa en `test/n01-trivy-rojo`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43640848421): con la base `debian:10.0`, Trivy encuentra 17 CRITICAL y el job falla antes de publicar.
 - [Corrida en `main`](https://github.com/SerraFacundo/goys-tp4-integrador/actions/runs/43641318416) tras el merge de la PR #92: publicó y firmó `goys-app:3d2ad79`, y el bot commiteó el bump en `c5ec049`. `cosign verify` con la identidad del workflow da OK.
+- Ciclo GitOps completo, 15/11: un pie de página nuevo en la app (PR #126) disparó el CI en `main`, que publicó y firmó `goys-app:fa923d5` y commiteó el bump `2e87192`. ArgoCD lo detectó y desplegó las réplicas nuevas sin pasos manuales. Capturas: [Application `app` `Synced` y `Healthy`](../capturas/07-app/n01-04-argo-synced.png) y [pod nuevo con la imagen `fa923d5`](../capturas/07-app/n01-05-argo-pod-imagen.png).
 
 La firma usa la identidad OIDC del workflow, sin claves que guardar. Queda registrada en Rekor, el log público de Sigstore. Para verificar una imagen:
 
