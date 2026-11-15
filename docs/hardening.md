@@ -10,6 +10,7 @@ Cada sección es un control de seguridad de la matriz de la propuesta (Tabla 4) 
 | N08 | Sealed Secrets: ningún secreto en claro en el repo | En curso |
 | R13 / R15 | NetworkPolicies default-deny y flujo bloqueado en Hubble | Pendiente |
 | N07 | ValidatingAdmissionPolicy | Pendiente |
+| N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha; falta repetirla con `redis` |
 
 ## R14 — Pod privilegiado rechazado
 
