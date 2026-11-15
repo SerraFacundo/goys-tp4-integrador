@@ -1,6 +1,5 @@
 # App X (R07): entrada HTTP desde el Gateway de M13 hacia la API.
-# shortcut: nombre y namespace del Gateway propuestos a Martín (M13); si cambian, ajustar parentRefs.
-# El listener del Gateway tiene que aceptar rutas del namespace "app" (allowedRoutes).
+# Gateway definido en k8s/gateway-api/gateway.yaml (M13); su listener solo acepta rutas del namespace "app".
 apiVersion: gateway.networking.k8s.io/v1
 kind: HTTPRoute
 metadata:
