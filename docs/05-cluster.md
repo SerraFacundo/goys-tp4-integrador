@@ -478,6 +478,73 @@ En host network el Envoy de cada nodo escucha en `<IP del nodo>:8000`. Se eligi�
 | `rollout status ds/cilium` | 4/4 agentes actualizados |
 | `curl http://10.10.10.21:8000/` | `404`: Envoy responde y todavía no hay rutas |
 
+## Acceso por integrante (M14)
+
+Cada integrante tiene su propio usuario de `kubectl`, para que el audit log registre quién hizo cada cosa. Es un certificado cliente firmado por la CA del cluster: el `CN` del certificado es el nombre de usuario.
+
+| Pieza | Elección | Motivo |
+|-------|----------|--------|
+| Usuarios | `facundo`, `agustin`, `manuel`, `baltazar` | `CN=<nombre>`, sin `O=` (ningún grupo extra) |
+| Permisos | `ClusterRoleBinding` a `cluster-admin` por usuario ([`k8s/rbac/integrantes.yaml`](../k8s/rbac/integrantes.yaml)) | Casi todas las tareas instalan o crean recursos de todo el cluster |
+| Vencimiento | 60 días (`expirationSeconds: 5184000`), vence el 13/01/2027 | Un certificado no se puede revocar; vence solo |
+| Revocación | Borrar el binding del usuario | El permiso está atado al nombre, no a un grupo |
+| Server | `https://10.10.10.11:6443` | Solo llega con WARP conectado |
+
+Las claves las generó Martín y cada kubeconfig se entregó por WhatsApp, porque el resto del grupo no estaba disponible (ver [decisiones.md](decisiones.md)). Después de entregarlos se borraron los mensajes y las copias locales.
+
+### Generación y firma
+
+```bash
+# notebook de Martín, con el kubeconfig de admin
+export KUBECONFIG=~/.kube/goys-tp4.yaml
+mkdir -p -m 700 ~/.kube/goys-entrega && cd ~/.kube/goys-entrega
+kubectl config view --raw -o jsonpath='{.clusters[0].cluster.certificate-authority-data}' | base64 -d > ca.crt
+
+for N in facundo agustin manuel baltazar; do
+  openssl req -new -newkey ec -pkeyopt ec_paramgen_curve:prime256v1 -nodes \
+    -keyout $N.key -out $N.csr -subj "/CN=$N" 2>/dev/null
+cat <<EOF | kubectl apply -f -
+apiVersion: certificates.k8s.io/v1
+kind: CertificateSigningRequest
+metadata:
+  name: goys-$N
+spec:
+  request: $(base64 -w0 < $N.csr)
+  signerName: kubernetes.io/kube-apiserver-client
+  expirationSeconds: 5184000
+  usages: ["client auth"]
+EOF
+  kubectl certificate approve goys-$N
+done
+```
+
+Antes de aprobar un CSR que llega de otra persona, revisar el subject (`openssl req -in X.csr -noout -subject`). Con `O=system:masters` el usuario es superadmin y no se le puede quitar el acceso por RBAC.
+
+### Permisos y kubeconfig
+
+```bash
+kubectl apply -f k8s/rbac/integrantes.yaml
+
+for N in facundo agustin manuel baltazar; do
+  kubectl get csr goys-$N -o jsonpath='{.status.certificate}' | base64 -d > $N.crt
+  K="--kubeconfig $N.kubeconfig"
+  kubectl $K config set-cluster goys --server=https://10.10.10.11:6443 --certificate-authority=ca.crt --embed-certs
+  kubectl $K config set-credentials $N --client-certificate=$N.crt --client-key=$N.key --embed-certs
+  kubectl $K config set-context goys --cluster=goys --user=$N
+  kubectl $K config use-context goys
+done
+```
+
+Cada integrante guarda su archivo como `~/.kube/goys-tp4.yaml` con permiso `600`, fuera del repo, y usa `export KUBECONFIG=~/.kube/goys-tp4.yaml`.
+
+### Verificación
+
+| Prueba | Resultado |
+|--------|-----------|
+| `kubectl get csr \| grep goys` | 4 CSR `Approved,Issued` |
+| `kubectl --kubeconfig <nombre>.kubeconfig auth whoami` | `Username <nombre>`, `Groups [system:authenticated]` |
+| `kubectl --kubeconfig <nombre>.kubeconfig get nodes` | 4 nodos `Ready` |
+
 ## Pendiente
 
 - **Volumen del audit log:** en reposo crece unos 358 KB/min (~500 MB por día). Con la rotación entran unos 2 días de historia. Revisar qué genera los eventos recientes y sumar reglas `None` si hace falta, antes de juntar evidencia para P03.
