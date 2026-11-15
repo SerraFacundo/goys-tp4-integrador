@@ -1,0 +1,79 @@
+# N05: Tetragon (detección en runtime con eBPF). Ver docs/hardening-tetragon.md.
+# - Dos fuentes: el chart oficial (helm.cilium.io, versión fija) y las TracingPolicies
+#   del grupo en k8s/hardening/tetragon/. La Application "hardening" no lee subcarpetas,
+#   así que esas políticas solo las aplica esta Application, en el mismo sync que las CRDs.
+# - Va en kube-system: el agente necesita capabilities del host y PSA restricted lo
+#   rechazaría en cualquier otro namespace (kube-system es el único exento, perfil CIS).
+# - CRDs por Helm (no por el operador) para que existan antes que las TracingPolicies.
+#   Pesan ~520 KB: ServerSideApply evita el límite de 256 KB de la anotación last-applied.
+# - Solo en workers: cp-01 anda justo de RAM y los pods de la app corren en los workers.
+# Wave 0, junto con hardening: no depende de que la app esté Healthy.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: tetragon
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  sources:
+    - repoURL: https://helm.cilium.io
+      chart: tetragon
+      targetRevision: 1.8.0
+      helm:
+        releaseName: tetragon
+        valuesObject:
+          crds:
+            installMethod: helm
+          affinity:
+            nodeAffinity:
+              requiredDuringSchedulingIgnoredDuringExecution:
+                nodeSelectorTerms:
+                  - matchExpressions:
+                      - key: node-role.kubernetes.io/control-plane
+                        operator: DoesNotExist
+          tetragon:
+            resources:
+              requests:
+                cpu: 50m
+                memory: 128Mi
+              limits:
+                cpu: "1"
+                memory: 512Mi
+          export:
+            resources:
+              requests:
+                cpu: 10m
+                memory: 16Mi
+              limits:
+                cpu: 100m
+                memory: 64Mi
+          tetragonOperator:
+            affinity:
+              nodeAffinity:
+                requiredDuringSchedulingIgnoredDuringExecution:
+                  nodeSelectorTerms:
+                    - matchExpressions:
+                        - key: node-role.kubernetes.io/control-plane
+                          operator: DoesNotExist
+    - repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+      targetRevision: main
+      path: k8s/hardening/tetragon
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: kube-system
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - ServerSideApply=true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

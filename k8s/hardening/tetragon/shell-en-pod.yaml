@@ -1,0 +1,42 @@
+# N05: detectar una shell ejecutada dentro de un contenedor (amenaza R del modelo STRIDE).
+# - Hook: security_bprm_check, el chequeo LSM que el kernel hace antes de cada exec.
+#   El path es el del archivo real: en Alpine "sh" es un link a busybox, por eso
+#   también se busca "/busybox" (en la app, solo la imagen de redis tiene shell).
+# - matchNamespaces: solo procesos fuera del PID namespace del host, o sea dentro de
+#   un contenedor. Las shells de los nodos (SSH, systemd) no generan eventos.
+# - Sin acción de bloqueo: solo registra (Post). La respuesta es el simulacro de N06.
+# La aplica la Application "tetragon" (k8s/argocd/apps/tetragon.yaml), no "hardening".
+# Wave 1 y SkipDryRun: la CRD TracingPolicy llega en el mismo sync (wave 0).
+apiVersion: cilium.io/v1alpha1
+kind: TracingPolicy
+metadata:
+  name: shell-en-pod
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+    argocd.argoproj.io/sync-options: SkipDryRunOnMissingResource=true
+spec:
+  kprobes:
+    - call: security_bprm_check
+      syscall: false
+      message: "Shell ejecutada dentro de un contenedor"
+      args:
+        - index: 0
+          type: linux_binprm
+      selectors:
+        - matchArgs:
+            - index: 0
+              operator: Postfix
+              values:
+                - "/sh"
+                - "/bash"
+                - "/dash"
+                - "/ash"
+                - "/zsh"
+                - "/busybox"
+          matchNamespaces:
+            - namespace: Pid
+              operator: NotIn
+              values:
+                - host_ns
