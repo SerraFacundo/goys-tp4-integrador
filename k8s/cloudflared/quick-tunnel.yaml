@@ -1,0 +1,99 @@
+# R09: publicación de la App X con un quick tunnel de Cloudflare (*.trycloudflare.com).
+# - Sin token ni cuenta: cloudflared pide una URL aleatoria al arrancar y la escribe en el log.
+#   La URL cambia cada vez que se reinicia el pod (runbook R11).
+# - 1 réplica: cada réplica de un quick tunnel abre su propio túnel con otra URL.
+# - Apunta al Gateway de M13 (k8s/gateway-api/gateway.yaml) por su Service, no a la api:
+#   el ruteo lo decide la HTTPRoute de k8s/app.
+# - Conexión solo saliente (QUIC/HTTP2 a la red de Cloudflare): no abre puertos en la casa.
+# Verificación desde internet: R10, docs/08-publicacion.md.
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: cloudflared
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+    pod-security.kubernetes.io/enforce: restricted
+    pod-security.kubernetes.io/enforce-version: latest
+    pod-security.kubernetes.io/audit: restricted
+    pod-security.kubernetes.io/audit-version: latest
+    pod-security.kubernetes.io/warn: restricted
+    pod-security.kubernetes.io/warn-version: latest
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+  labels:
+    app.kubernetes.io/name: cloudflared
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  replicas: 1 # más réplicas = más túneles con URLs distintas
+  strategy:
+    type: Recreate # que no convivan dos túneles durante un rollout
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: cloudflared
+        app.kubernetes.io/part-of: goys-tp4
+    spec:
+      automountServiceAccountToken: false # no habla con la API de Kubernetes
+      # Solo en workers, como la app (cp-01 anda justo de RAM).
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 65532 # usuario nonroot de la imagen distroless
+        runAsGroup: 65532
+        seccompProfile:
+          type: RuntimeDefault
+      containers:
+        - name: cloudflared
+          # Tag fijo. Al primer despliegue fijar también el digest (ver docs/08-publicacion.md).
+          image: docker.io/cloudflare/cloudflared:2026.7.2
+          args:
+            - tunnel
+            - --no-autoupdate
+            - --metrics
+            - 0.0.0.0:2000
+            - --url
+            - http://cilium-gateway-goys-gateway.gateway.svc.cluster.local:8000
+          ports:
+            - name: metrics
+              containerPort: 2000
+          # /ready da 200 solo con al menos una conexión activa contra Cloudflare.
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: metrics
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          # Liveness solo mira que el proceso responda: reiniciar por un corte de
+          # Cloudflare cambiaría la URL sin arreglar nada (cloudflared reconecta solo).
+          livenessProbe:
+            httpGet:
+              path: /healthcheck
+              port: metrics
+            initialDelaySeconds: 30
+            periodSeconds: 20
+            failureThreshold: 3
+          resources:
+            requests:
+              cpu: 10m
+              memory: 32Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities:
+              drop: ["ALL"]
