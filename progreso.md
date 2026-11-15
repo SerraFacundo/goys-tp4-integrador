@@ -12,7 +12,7 @@
 | Facundo Serra | SerraFacundo | App, CI y firma de imágenes |
 | Martín Espamer | MartinEspamer | Host Proxmox, acceso Zero Trust, RKE2 y ArgoCD |
 | Agustín Manrique | AgustinManrique | Nodos, repo, backups, matriz de evidencias y póster |
-| Manuel Rebol |                   | Publicación, hardening del cluster e informe final |
+| Manuel Rebol | ManuelRebol       | Publicación, hardening del cluster e informe final |
 | Baltazar Molteni |                   | Automatización con Ansible, políticas de admisión y videos |
 
 ## 🎯 Proyecto
@@ -51,6 +51,7 @@
 | 2026-11-14 | N01 y N02 probados en `main`: imagen `goys-app:3d2ad79` publicada y firmada, bump automático (`c5ec049`) y `cosign verify` OK | Facundo Serra |        |
 | 2026-11-14 | C04: capturas de R04, R06, N01 y N02 en `capturas/07-app/` y de C01 (`warp-cli status` y cliente WARP conectado y UI de Proxmox por WARP) en `capturas/03-acceso/` | Facundo Serra |        |
 | 2026-11-14 | CI publica la imagen en formato docker para que podman respete el `HEALTHCHECK` (hallado al sacar la captura de R04) | Facundo Serra |        |
+| 2026-11-14 | R24: esqueleto del informe en `documento/informe.md`; redactada la sección "Cambios respecto a la propuesta" | Manuel Rebol |        |
 
 ## 🚧 Pendientes / decisiones
 
