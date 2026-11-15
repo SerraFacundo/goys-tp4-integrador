@@ -53,6 +53,7 @@
 | 2026-11-14 | CI publica la imagen en formato docker para que podman respete el `HEALTHCHECK` (hallado al sacar la captura de R04) | Facundo Serra |        |
 | 2026-11-14 | R24: esqueleto del informe en `documento/informe.md`; redactada la sección "Cambios respecto a la propuesta" | Manuel Rebol |        |
 | 2026-11-15 | N04: manifiestos de resiliencia (`api` con 2 réplicas, topology spread, PDB `minAvailable: 1`; pods solo en workers). Falta la prueba en el cluster | Facundo Serra |        |
+| 2026-11-15 | R09: manifiesto del quick tunnel en `k8s/cloudflared/` y procedimiento de R10 en `docs/08-publicacion.md`. Falta desplegarlo y probarlo desde un celular | Manuel Rebol |        |
 
 ## 🚧 Pendientes / decisiones
 
