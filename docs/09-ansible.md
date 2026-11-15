@@ -127,9 +127,11 @@ Con `--limit wk-03` no se toca `cp-01`: el playbook solo entra para leer el toke
 | VM 123 recreada desde la plantilla | *Clone* de 9000 de 19:56:03 a 19:57:01 (≈1 min), *Start* a las 19:58:13 | [`r18-02-proxmox-clon.png`](../capturas/09-ansible/r18-02-proxmox-clon.png) |
 | `cluster.yml --limit wk-03`, primera corrida | Preparó el nodo, instaló RKE2 y `wk-03` quedó `Ready`, pero la tarea de espera no lo detectó (ver [Incidente](#incidente-la-espera-del-ready-no-terminaba)). Cortada a mano a los 6 min 05 s | [`r18-03-ansible-1.png`](../capturas/09-ansible/r18-03-ansible-1.png) |
 | `cluster.yml --limit wk-03`, con el arreglo | `ok=27`, `changed=0`, `failed=0` en 1 min 08 s: el nodo ya estaba completo y la espera pasó al primer intento | [`r18-03-ansible-2.png`](../capturas/09-ansible/r18-03-ansible-2.png) |
-| `kubectl get nodes`: `wk-03 Ready` con `v1.36.6+rke2r1` | `Ready` unos 65 s después de registrarse en el cluster (eventos `RegisteredNode` → `NodeReady`) | Pendiente |
-| Cilium y Tetragon corriendo en `wk-03` (`kubectl get pods -A -o wide \| grep wk-03`) | Pendiente | — |
-| `verificar-nodos.yml --limit wk-03` | Pendiente (`Hardening OK`) | — |
+| `kubectl get nodes`: `wk-03 Ready` con `v1.36.6+rke2r1` | Los 4 nodos `Ready`, misma versión. `wk-03` quedó `Ready` unos 65 s después de registrarse en el cluster (eventos `RegisteredNode` → `NodeReady`) | [`r18-04-05-ready-hardening.png`](../capturas/09-ansible/r18-04-05-ready-hardening.png) |
+| Cilium y Tetragon corriendo en `wk-03` (`kubectl get pods -A -o wide \| grep wk-03`) | `cilium` `1/1 Running` y `tetragon` `2/2 Running`: los DaemonSets se instalan solos en el nodo nuevo | [`r18-04-05-ready-hardening.png`](../capturas/09-ansible/r18-04-05-ready-hardening.png) |
+| `verificar-nodos.yml --limit wk-03` | Igual que los otros nodos: root `L`, SSH solo con clave, `sin swap`, unattended-upgrades activo. `Hardening OK`, `changed=0` | [`r18-04-05-ready-hardening.png`](../capturas/09-ansible/r18-04-05-ready-hardening.png) |
+
+Los pods de la app no se mueven solos a `wk-03`: Kubernetes no rebalancea pods que ya están corriendo. `wk-03` recibe pods nuevos a partir de ahora (por ejemplo, en el próximo despliegue).
 
 **Tiempo total:** de *Clone* a nodo `Ready` fueron unos 10 minutos, casi todo en la primera corrida de Ansible (actualización de paquetes e instalación de RKE2). Sin intervención manual en el nodo: solo la web de Proxmox y `cluster.yml`.
 
