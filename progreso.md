@@ -56,7 +56,6 @@
 | 2026-11-15 | R09: manifiesto del quick tunnel en `k8s/cloudflared/` y procedimiento de R10 en `docs/08-publicacion.md`. Falta desplegarlo y probarlo desde un celular | Manuel Rebol |        |
 | 2026-11-15 | M06 cerrada: salida a internet verificada desde `cp-01` (`ping` y `curl` OK) después del arreglo de NAT de Martín; docs de la etapa 4 actualizados | Agustín Manrique |        |
 | 2026-11-15 | R14: pod privilegiado rechazado por PSA `restricted` en el namespace `app`; sección en `docs/hardening.md` con capturas | Agustín Manrique |        |
-| 2026-11-15 | Póster A1 en Typst (`poster/poster.typ` → `poster/poster.pdf`), estilo IEEE; diagrama de arquitectura del estado real en `diagramas/arquitectura.svg` y QR al repo | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones
 
