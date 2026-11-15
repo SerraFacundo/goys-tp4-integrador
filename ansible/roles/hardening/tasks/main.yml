@@ -1,0 +1,103 @@
+---
+# --- SSH -------------------------------------------------------------------
+- name: Buscar el home del usuario de conexion
+  ansible.builtin.getent:
+    database: passwd
+    key: "{{ ansible_user }}"
+
+# Claves publicas del grupo (files/authorized_keys). Solo agrega: si alguien
+# saca una linea del archivo, su clave sigue en los nodos hasta borrarla a mano.
+- name: Cargar las claves publicas del grupo
+  ansible.builtin.lineinfile:
+    path: "{{ ansible_facts.getent_passwd[ansible_user][4] }}/.ssh/authorized_keys"
+    line: "{{ item }}"
+    create: true
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0600"
+  loop: "{{ lookup('ansible.builtin.file', hardening_claves_archivo).splitlines() | select('match', '^ssh-') | list }}"
+
+- name: Revisar authorized_keys del usuario de conexion
+  ansible.builtin.stat:
+    path: "{{ ansible_facts.getent_passwd[ansible_user][4] }}/.ssh/authorized_keys"
+  register: hardening_authorized_keys
+
+- name: No cerrar el login por password si no hay claves cargadas
+  ansible.builtin.assert:
+    that:
+      - hardening_authorized_keys.stat.exists
+      - hardening_authorized_keys.stat.size > 0
+    fail_msg: >-
+      {{ ansible_user }} no tiene claves en authorized_keys: deshabilitar el
+      password dejaria el nodo sin acceso.
+
+# El nombre 10-* hace que gane sobre 50-cloud-init.conf y
+# 60-cloudimg-settings.conf: sshd toma el primer valor que lee.
+- name: Endurecer sshd
+  ansible.builtin.copy:
+    dest: /etc/ssh/sshd_config.d/10-hardening.conf
+    owner: root
+    group: root
+    mode: "0644"
+    validate: /usr/sbin/sshd -t -f %s
+    content: |
+      # Administrado por Ansible (rol hardening)
+      PermitRootLogin no
+      PubkeyAuthentication yes
+      PasswordAuthentication no
+      KbdInteractiveAuthentication no
+      PermitEmptyPasswords no
+      X11Forwarding no
+      MaxAuthTries 3
+  notify: Reiniciar ssh
+
+- name: Bloquear el password de root
+  ansible.builtin.user:
+    name: root
+    password_lock: true
+
+# --- Actualizaciones automaticas de seguridad -------------------------------
+- name: Instalar unattended-upgrades
+  ansible.builtin.apt:
+    name: unattended-upgrades
+    state: present
+
+- name: Activar la ejecucion periodica de unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/20auto-upgrades
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      // Administrado por Ansible (rol hardening)
+      APT::Periodic::Update-Package-Lists "1";
+      APT::Periodic::Unattended-Upgrade "1";
+
+- name: Ajustar unattended-upgrades
+  ansible.builtin.copy:
+    dest: /etc/apt/apt.conf.d/52unattended-upgrades-goys
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      // Administrado por Ansible (rol hardening)
+      Unattended-Upgrade::Automatic-Reboot "{{ hardening_reinicio_automatico | ternary('true', 'false') }}";
+      Unattended-Upgrade::Remove-Unused-Dependencies "true";
+
+- name: Habilitar el servicio y los timers de apt
+  ansible.builtin.systemd_service:
+    name: "{{ item }}"
+    enabled: true
+    state: started
+  loop:
+    - unattended-upgrades.service
+    - apt-daily.timer
+    - apt-daily-upgrade.timer
+
+# --- Paquetes minimos --------------------------------------------------------
+- name: Quitar paquetes que el nodo no necesita
+  ansible.builtin.apt:
+    name: "{{ hardening_paquetes_a_quitar }}"
+    state: absent
+    purge: true
+    autoremove: true

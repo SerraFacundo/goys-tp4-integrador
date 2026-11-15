@@ -1,0 +1,14 @@
+---
+# Paquetes de la imagen cloud que el nodo no necesita.
+hardening_paquetes_a_quitar:
+  - snapd
+  - inetutils-telnet
+  - tnftp
+  - ftp
+
+# Un nodo de Kubernetes no se reinicia solo: el reinicio se hace a mano,
+# con drain previo. Los parches se instalan igual.
+hardening_reinicio_automatico: false
+
+# Claves publicas que se cargan en el usuario de conexion de cada nodo.
+hardening_claves_archivo: "{{ playbook_dir }}/files/authorized_keys"

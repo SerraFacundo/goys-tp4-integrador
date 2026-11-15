@@ -1,0 +1,8 @@
+---
+# R16 + R17 en una sola corrida: de un clon recien creado a un nodo Ready.
+# Uso: ansible-playbook cluster.yml --limit wk-03
+- name: Preparar los nodos
+  ansible.builtin.import_playbook: preparar-nodos.yml
+
+- name: Instalar RKE2
+  ansible.builtin.import_playbook: instalar-rke2.yml

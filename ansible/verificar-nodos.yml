@@ -1,0 +1,55 @@
+---
+# Evidencia de P02: muestra el estado del hardening y falla si algo no cumple.
+# No cambia nada en el nodo.
+# Uso: ansible-playbook verificar-nodos.yml [--limit wk-01]
+- name: Verificar el hardening de los nodos
+  hosts: all
+  gather_facts: false
+  vars:
+    verificar_sshd_claves: "^(permitrootlogin|pubkeyauthentication|passwordauthentication|kbdinteractiveauthentication) "
+  tasks:
+    - name: Leer la configuracion efectiva de sshd
+      ansible.builtin.command: sshd -T
+      register: sshd
+      changed_when: false
+
+    - name: Leer el estado de unattended-upgrades
+      ansible.builtin.command: "{{ item }}"
+      register: uu
+      changed_when: false
+      failed_when: false
+      loop:
+        - systemctl is-enabled unattended-upgrades.service
+        - systemctl is-active apt-daily-upgrade.timer
+        - apt-config dump APT::Periodic::Unattended-Upgrade
+
+    - name: Leer el estado del password de root
+      ansible.builtin.command: passwd -S root
+      register: root_passwd
+      changed_when: false
+
+    - name: Leer el swap activo
+      ansible.builtin.command: swapon --show --noheadings
+      register: swap
+      changed_when: false
+
+    - name: Mostrar evidencia
+      ansible.builtin.debug:
+        msg:
+          sshd: "{{ sshd.stdout_lines | select('match', verificar_sshd_claves) | list }}"
+          unattended_upgrades: "{{ uu.results | map(attribute='stdout') | list }}"
+          root: "{{ root_passwd.stdout }}"
+          swap: "{{ swap.stdout | default('sin swap', true) }}"
+
+    - name: Comprobar que el nodo cumple
+      ansible.builtin.assert:
+        that:
+          - "'permitrootlogin no' in sshd.stdout_lines"
+          - "'passwordauthentication no' in sshd.stdout_lines"
+          - "'kbdinteractiveauthentication no' in sshd.stdout_lines"
+          - uu.results[0].stdout == 'enabled'
+          - uu.results[1].stdout == 'active'
+          - uu.results[2].stdout == 'APT::Periodic::Unattended-Upgrade "1";'
+          - root_passwd.stdout.split()[1] == 'L'
+          - swap.stdout == ''
+        success_msg: Hardening OK

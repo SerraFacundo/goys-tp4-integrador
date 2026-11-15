@@ -1,0 +1,14 @@
+# Administrado por Ansible (rol rke2_server). Ver docs/05-cluster.md, Configuración
+profile: cis
+cni: cilium
+disable-kube-proxy: true
+secrets-encryption: true
+node-ip: {{ ansible_host }}
+tls-san:
+  - {{ ansible_host }}
+  - {{ inventory_hostname }}
+write-kubeconfig-mode: "0600"
+audit-policy-file: /etc/rancher/rke2/audit-policy.yaml
+disable:
+  - rke2-traefik
+  - rke2-traefik-crd

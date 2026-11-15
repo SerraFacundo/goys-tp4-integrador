@@ -1,0 +1,69 @@
+---
+# M08 en codigo: mismos pasos y archivos que docs/05-cluster.md.
+# Los sysctl CIS los deja el rol base (preparar-nodos.yml).
+
+# --- Preparacion CIS: etcd corre con su propio usuario ------------------------
+- name: Grupo etcd
+  ansible.builtin.group:
+    name: etcd
+    system: true
+
+- name: Usuario etcd
+  ansible.builtin.user:
+    name: etcd
+    group: etcd
+    comment: etcd user
+    shell: /sbin/nologin
+    system: true
+    create_home: false
+
+# --- Configuracion, antes del primer arranque ---------------------------------
+- name: Escribir config.yaml y la politica de audit
+  ansible.builtin.template:
+    src: "{{ item }}.j2"
+    dest: "/etc/rancher/rke2/{{ item }}"
+    owner: root
+    group: root
+    mode: "0600"
+  loop:
+    - config.yaml
+    - audit-policy.yaml
+  notify: Reiniciar rke2
+
+- name: Directorio de manifiestos del server
+  ansible.builtin.file:
+    path: /var/lib/rancher/rke2/server/manifests
+    state: directory
+    owner: root
+    group: root
+
+# RKE2 lo vuelve a aplicar solo cuando cambia: no hace falta reiniciar.
+- name: Configuracion de Cilium (HelmChartConfig)
+  ansible.builtin.template:
+    src: rke2-cilium-config.yaml.j2
+    dest: /var/lib/rancher/rke2/server/manifests/rke2-cilium-config.yaml
+    owner: root
+    group: root
+    mode: "0600"
+
+# --- Arranque -----------------------------------------------------------------
+- name: Habilitar y arrancar rke2-server
+  ansible.builtin.systemd_service:
+    name: rke2-server
+    enabled: true
+    state: started
+
+- name: Aplicar un reinicio pendiente antes de esperar el nodo
+  ansible.builtin.meta: flush_handlers
+
+- name: Esperar a que el nodo quede Ready
+  ansible.builtin.command: >-
+    /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml
+    get node {{ inventory_hostname }}
+    -o jsonpath={.status.conditions[?(@.type=="Ready")].status}
+  register: rke2_ready
+  until: rke2_ready.stdout == "True"
+  retries: 60
+  delay: 10
+  changed_when: false
+  when: not ansible_check_mode

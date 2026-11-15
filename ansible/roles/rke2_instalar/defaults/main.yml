@@ -1,0 +1,8 @@
+---
+# server o agent. Lo fijan rke2_server y rke2_agent en su meta/main.yml.
+rke2_tipo: agent
+
+# Instalador oficial, revisado a mano el 14/11 (docs/05-cluster.md). Si Rancher
+# lo cambia, la descarga falla por checksum: revisar el nuevo y actualizar el hash.
+rke2_instalador_url: https://get.rke2.io
+rke2_instalador_sha256: 45f5c14cd04aa3de4b164d5a7412113ab415bebbe5cbaa952448a5dabb57876a

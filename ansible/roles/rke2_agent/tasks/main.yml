@@ -1,0 +1,48 @@
+---
+# M09 en codigo: mismos pasos y archivos que docs/05-cluster.md.
+# Los sysctl CIS los deja el rol base (preparar-nodos.yml).
+
+# El node-token se lee de cp-01 y se escribe en el worker sin guardarlo en la
+# notebook. no_log y diff: false para que no salga en pantalla.
+- name: Leer el node-token del server
+  ansible.builtin.slurp:
+    src: /var/lib/rancher/rke2/server/node-token
+  delegate_to: "{{ groups['rke2_servers'][0] }}"
+  register: rke2_node_token
+  no_log: true
+
+- name: Escribir config.yaml del agent
+  ansible.builtin.template:
+    src: config.yaml.j2
+    dest: /etc/rancher/rke2/config.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  vars:
+    rke2_token: "{{ rke2_node_token.content | b64decode | trim }}"
+  no_log: true
+  diff: false
+  notify: Reiniciar rke2
+
+- name: Habilitar y arrancar rke2-agent
+  ansible.builtin.systemd_service:
+    name: rke2-agent
+    enabled: true
+    state: started
+
+- name: Aplicar un reinicio pendiente antes de esperar el nodo
+  ansible.builtin.meta: flush_handlers
+
+# Queda NotReady hasta que Cilium arranca en el nodo (menos de un minuto).
+- name: Esperar a que el nodo quede Ready
+  ansible.builtin.command: >-
+    /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml
+    get node {{ inventory_hostname }}
+    -o jsonpath={.status.conditions[?(@.type=="Ready")].status}
+  delegate_to: "{{ groups['rke2_servers'][0] }}"
+  register: rke2_ready
+  until: rke2_ready.stdout == "True"
+  retries: 60
+  delay: 10
+  changed_when: false
+  when: not ansible_check_mode

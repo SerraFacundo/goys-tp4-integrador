@@ -1,0 +1,5 @@
+---
+dependencies:
+  - role: rke2_instalar
+    vars:
+      rke2_tipo: agent

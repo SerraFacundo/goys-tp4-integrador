@@ -1,0 +1,4 @@
+# Claves SSH PUBLICAS de los integrantes, una por linea (R16).
+# El rol hardening las agrega al usuario goys de cada nodo; no borra las que ya estan.
+# Las claves privadas nunca van al repo.
+ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIC6JySPl7kGA2gQtSgKOURxJX6mncoNvmSsUfofON7H3 baltazar-goys

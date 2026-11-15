@@ -1,0 +1,17 @@
+---
+# Aplica las actualizaciones pendientes al preparar el nodo.
+base_actualizar_paquetes: true
+
+base_paquetes:
+  - curl
+  - ca-certificates
+  - qemu-guest-agent
+
+# Parametros de kernel. Los cuatro primeros son los que exige RKE2 con
+# `profile: cis` (rke2-cis-sysctl.conf): sin ellos el servicio no arranca.
+base_sysctl:
+  vm.panic_on_oom: 0
+  vm.overcommit_memory: 1
+  kernel.panic: 10
+  kernel.panic_on_oops: 1
+  net.ipv4.ip_forward: 1

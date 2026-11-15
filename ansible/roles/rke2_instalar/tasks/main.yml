@@ -1,0 +1,42 @@
+---
+- name: Leer la version de RKE2 instalada
+  ansible.builtin.command: /usr/local/bin/rke2 --version
+  register: rke2_version_actual
+  changed_when: false
+  failed_when: false
+  check_mode: false
+
+- name: Recordar si el nodo ya tenia RKE2
+  ansible.builtin.set_fact:
+    rke2_estaba_instalado: "{{ rke2_version_actual.rc == 0 }}"
+    rke2_hay_que_instalar: "{{ rke2_version_actual.rc != 0 or rke2_version not in rke2_version_actual.stdout }}"
+
+- name: Instalar o actualizar RKE2
+  when: rke2_hay_que_instalar
+  block:
+    # Se baja y se verifica el hash, en vez de curl | sh.
+    - name: Descargar el instalador de RKE2
+      ansible.builtin.get_url:
+        url: "{{ rke2_instalador_url }}"
+        dest: /root/install-rke2.sh
+        checksum: "sha256:{{ rke2_instalador_sha256 }}"
+        owner: root
+        group: root
+        mode: "0700"
+
+    # Instala por tarball en /usr/local y no arranca el servicio.
+    - name: Correr el instalador con version fija
+      ansible.builtin.command: sh /root/install-rke2.sh
+      environment:
+        INSTALL_RKE2_VERSION: "{{ rke2_version }}"
+        INSTALL_RKE2_TYPE: "{{ rke2_tipo }}"
+      changed_when: true
+      notify: Reiniciar rke2
+
+- name: Directorio de configuracion de RKE2
+  ansible.builtin.file:
+    path: /etc/rancher/rke2
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"

@@ -1,0 +1,9 @@
+---
+# Usuario que crea cloud-init en la plantilla (M03, ver docs/04-nodos.md).
+ansible_user: goys
+ansible_become: true
+
+# RKE2 (R17). Misma version que se instalo a mano en M08-M09 (docs/05-cluster.md).
+# Para un upgrade se cambia aca (ver docs/runbook-upgrade-rke2.md).
+rke2_version: v1.36.6+rke2r1
+rke2_server_ip: "{{ hostvars[groups['rke2_servers'][0]]['ansible_host'] }}"

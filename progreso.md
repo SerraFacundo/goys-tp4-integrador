@@ -61,6 +61,7 @@
 | 2026-11-15 | N01 completo: cambio visible en la app, CI publica `goys-app:fa923d5` y ArgoCD lo despliega solo. N04: `preStop` en `api`, drain sin cortes y caída dura de un worker (≈47 s con errores hasta `NotReady`); capturas en `capturas/07-app/` | Facundo Serra |        |
 | 2026-11-15 | R22: nmap a la IP pública de la casa desde otra red y sin WARP (65535 TCP y top 50 UDP): ningún puerto abierto, con la app respondiendo por el quick tunnel; capturas en `capturas/08-publicacion/` | Facundo Serra |        |
 | 2026-11-15 | Póster A1 en Typst (`poster/poster.typ` → `poster/poster.pdf`), estilo IEEE; diagrama de arquitectura del estado real en `diagramas/arquitectura.svg` y QR al repo | Facundo Serra |        |
+| 2026-11-15 | P02, R16 y R17: playbooks `preparar-nodos.yml`, `instalar-rke2.yml` y `cluster.yml` en `ansible/`; doc en `docs/09-ansible.md`. P02 y R16 aplicados en los 4 nodos (`Hardening OK`) y R17 comparado con el cluster con `--check --diff` (sin diferencias de fondo); capturas en `capturas/09-ansible/`. Falta R18 | Baltazar Molteni |        |
 
 ## 🚧 Pendientes / decisiones
 

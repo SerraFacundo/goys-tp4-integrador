@@ -1,0 +1,5 @@
+# Administrado por Ansible (rol rke2_agent). Ver docs/05-cluster.md, Agents
+server: https://{{ rke2_server_ip }}:9345
+profile: cis
+node-ip: {{ ansible_host }}
+token: {{ rke2_token }}
