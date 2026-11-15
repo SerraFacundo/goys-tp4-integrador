@@ -6,6 +6,8 @@
 
 **Listo cuando (M09, #24):** `wk-01`, `wk-02` y `wk-03` registrados en el cluster.
 
+**Listo cuando (M16, #31):** pods de ArgoCD `Running` en el namespace `argocd`.
+
 ## Reinstalar desde cero (R17)
 
 Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su sección.
@@ -22,6 +24,7 @@ Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su 
 | 8 | notebook | `kubectl apply -f k8s/cilium/hubble-ui-policy.yaml` ([Hubble](#hubble-m11)) |
 | 9 | notebook | CRDs de Gateway API, reinicio de operator y agentes, y `k8s/gateway-api/gateway.yaml` ([Gateway API](#gateway-api-m13)) |
 | 10 | notebook | `kubectl apply -f k8s/rbac/integrantes.yaml` y certificados nuevos ([Acceso por integrante](#acceso-por-integrante-m14)) |
+| 11 | notebook | Namespace e instalación de ArgoCD `v3.6.1`, cambio de la contraseña de `admin` ([ArgoCD](#argocd-m16)) |
 
 En una reinstalación, Hubble y Gateway API ya van en el `HelmChartConfig` del paso 3. Los CRDs de Gateway API tienen que estar antes de que arranque el operator; si no, Cilium desactiva el soporte y hay que reiniciar el operator después de aplicarlos (paso 9). Una CA nueva invalida los kubeconfig anteriores: hay que generar certificados nuevos para cada integrante.
 
@@ -596,3 +599,76 @@ EOF
 Lo que queda es ruido normal del control plane (por ejemplo `system:apiserver get /openapi/v3`). No se filtra, porque una política nueva obliga a reiniciar `rke2-server`.
 
 Al desactivar un chart que trae CRDs, conviene reiniciar el controller-manager después de borrar los CRDs.
+
+## ArgoCD (M16)
+
+ArgoCD es el único que aplica manifiestos al cluster. Lo único que se aplica a mano es el propio ArgoCD, una sola vez (bootstrap).
+
+### Instalación
+
+Versión fija `v3.6.1` (no `stable`), manifiesto sin HA: una réplica por componente. Va con `--server-side` porque los CRDs de ArgoCD superan el límite de la anotación `last-applied-configuration` del apply normal.
+
+```bash
+kubectl apply -f k8s/argocd/namespace.yaml
+kubectl apply -n argocd --server-side --force-conflicts \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.1/manifests/install.yaml
+kubectl -n argocd rollout status deploy --timeout=300s
+kubectl -n argocd rollout status statefulset/argocd-application-controller --timeout=300s
+```
+
+### Pod Security Admission
+
+El namespace `argocd` queda en `restricted`, igual que el resto del cluster, y **no se exenta**. Antes de instalar se probó el manifiesto contra PSA sin crear nada:
+
+```bash
+kubectl apply -n argocd --server-side --force-conflicts --dry-run=server \
+  -f https://raw.githubusercontent.com/argoproj/argo-cd/v3.6.1/manifests/install.yaml 2>&1 \
+  | grep -iE "warning|error|forbidden" || echo "SIN AVISOS PSA"
+```
+
+Resultado: `SIN AVISOS PSA`. Todos los pods de ArgoCD 3.6 ya traen `runAsNonRoot`, `drop: ["ALL"]`, `allowPrivilegeEscalation: false` y seccomp `RuntimeDefault`.
+
+### Consumo de RAM
+
+En reposo, sin Applications, recién instalado:
+
+| Pod | Nodo | Memoria |
+|-----|------|---------|
+| `argocd-dex-server` | `wk-03` | 121Mi |
+| `argocd-server` | `wk-03` | 39Mi |
+| `argocd-application-controller-0` | `wk-02` | 23Mi |
+| `argocd-applicationset-controller` | `wk-03` | 22Mi |
+| `argocd-repo-server` | `wk-01` | 20Mi |
+| `argocd-notifications-controller` | `wk-03` | 19Mi |
+| `argocd-redis` | `wk-02` | 5Mi |
+
+Unos 250Mi en total. Nodos después de instalar: `cp-01` 55% (sin pods de ArgoCD), `wk-01` 30%, `wk-02` 32%, `wk-03` 36%. Dex se deja aunque es la mitad del consumo; si la RAM de los workers aprieta, se apaga (los usuarios de M18 son locales). `repo-server` y `application-controller` van a crecer cuando haya Applications (M19–M21).
+
+### Contraseña de `admin`
+
+CLI `argocd` `v3.6.1` en la notebook (`~/.local/bin/argocd`). Se entra por `port-forward`, sin exponer nada:
+
+```bash
+kubectl -n argocd port-forward svc/argocd-server 8080:443   # otra terminal
+argocd login localhost:8080 --insecure --username admin \
+  --password "$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+CUR="$(kubectl -n argocd get secret argocd-initial-admin-secret -o jsonpath='{.data.password}' | base64 -d)"
+argocd account update-password --current-password "$CUR"   # la nueva se escribe a mano
+unset CUR
+```
+
+La contraseña nueva se generó con `openssl rand -base64 24` y está en el gestor de contraseñas de Martín, fuera del repo. `--insecure` es por el certificado autofirmado de `argocd-server`; el tráfico no sale de la notebook.
+
+Después de comprobar el login con la nueva se borró el Secret con la inicial:
+
+```bash
+kubectl -n argocd delete secret argocd-initial-admin-secret
+```
+
+### Verificación
+
+| Comando | Resultado |
+|---------|-----------|
+| `kubectl -n argocd get pods` | 7 pods `Running`, 0 reinicios |
+| `argocd login localhost:8080 --insecure --username admin` (contraseña nueva) | `'admin:login' logged in successfully` |
+| `kubectl -n argocd get secret argocd-initial-admin-secret` | `NotFound` |
