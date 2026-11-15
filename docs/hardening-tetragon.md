@@ -69,10 +69,10 @@ kubectl -n argocd exec deploy/argocd-repo-server -- sh -c "id"
 
 | Prueba | Resultado | Captura |
 |--------|-----------|---------|
-| Application `tetragon` | `Synced`, `Healthy` | — |
-| DaemonSet en los 3 workers, nada en `cp-01` | `3/3`, un pod `2/2 Running` en cada `wk-01..03`, 0 reinicios | — |
-| `kubectl get tracingpolicies` | `shell-en-pod` | — |
-| Shell en `argocd-repo-server`: evento de `shell-en-pod` con pod, binario y argumentos | Pendiente | — |
+| Application `tetragon` | `Synced`, `Healthy` | [`n05-01-instalacion.png`](../capturas/hardening/n05-01-instalacion.png) |
+| DaemonSet en los 3 workers, nada en `cp-01` | `3/3`, un pod `2/2 Running` en cada `wk-01..03`, 0 reinicios | [`n05-01-instalacion.png`](../capturas/hardening/n05-01-instalacion.png) |
+| `kubectl get tracingpolicies` | `shell-en-pod` | [`n05-01-instalacion.png`](../capturas/hardening/n05-01-instalacion.png) |
+| Shell en `argocd-repo-server` (`sh -c "id"`): eventos de `shell-en-pod` | Dos eventos: `runc` en `wk-01` sin pod (selector 1) y `argocd/argocd-repo-server-...` con `/usr/bin/sh` (selector 2) | [`n05-02-shell-detectada.png`](../capturas/hardening/n05-02-shell-detectada.png) |
 | Shell en `redis` (después de N08) | Pendiente | — |
 
 ### Primera prueba: el evento sin pod
