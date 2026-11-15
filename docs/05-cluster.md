@@ -747,3 +747,21 @@ argocd app list
 `root` lee la rama `main`: se aplica después de que `k8s/argocd/apps/` esté mergeado.
 
 Estado esperado mientras falten piezas de otros: `app` queda `Degraded` hasta que exista el Secret `redis-auth` (N08), y `cloudflared` queda vacía hasta que se mergee el quick tunnel (R09).
+
+### Verificación
+
+```
+NAME                NAMESPACE    STATUS  HEALTH       PATH
+argocd/app          app          Synced  Progressing  k8s/app
+argocd/cloudflared  cloudflared  Synced  Healthy      k8s/cloudflared
+argocd/hardening                 Synced  Healthy      k8s/hardening
+argocd/root         argocd       Synced  Progressing  k8s/argocd/apps
+```
+
+| Prueba | Resultado |
+|--------|-----------|
+| `argocd app list` | 4 Applications `Synced` (salida resumida arriba) |
+| UI de ArgoCD | Las 4 visibles: [`m20-1-applications.png`](../capturas/05-cluster/m20-1-applications.png) |
+| Orden de las waves | `hardening` sincronizó a las 01:57:30 y `app` se creó a las 01:57:31 |
+| `kubectl get ns app --show-labels` | Namespace creado por ArgoCD con las labels PSA `restricted` de R12 |
+| `kubectl get pods -n app` | `api` (2) y `redis` en `CreateContainerConfigError`: falta el Secret `redis-auth` (N08). Por eso `app` y `root` quedan `Progressing` |
