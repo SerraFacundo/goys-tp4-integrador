@@ -1,0 +1,100 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1100 530" font-family="Liberation Sans, Arial, sans-serif" fill="#1a1a1a">
+  <!-- Estado real (15/11/2026): túnel admin en cf-admin, quick tunnel para la app, GitOps con ArgoCD. -->
+  <defs>
+    <marker id="a" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#002855"/>
+    </marker>
+    <marker id="g" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10z" fill="#00629B"/>
+    </marker>
+  </defs>
+
+  <!-- Actores -->
+  <rect x="10" y="45" width="190" height="110" rx="10" fill="#fff" stroke="#002855" stroke-width="2.5"/>
+  <text x="105" y="85" text-anchor="middle" font-size="21" font-weight="bold">Administradores</text>
+  <text x="105" y="112" text-anchor="middle" font-size="17">Grupo 12</text>
+  <text x="105" y="136" text-anchor="middle" font-size="17">WARP + OTP por mail</text>
+
+  <rect x="10" y="275" width="190" height="95" rx="10" fill="#fff" stroke="#002855" stroke-width="2.5"/>
+  <text x="105" y="315" text-anchor="middle" font-size="21" font-weight="bold">Visitantes</text>
+  <text x="105" y="343" text-anchor="middle" font-size="17">celular o navegador</text>
+
+  <rect x="10" y="420" width="190" height="95" rx="10" fill="#E8F3EA" stroke="#2E7D32" stroke-width="2.5"/>
+  <text x="105" y="458" text-anchor="middle" font-size="18" font-weight="bold" fill="#2E7D32">Router de la casa</text>
+  <text x="105" y="488" text-anchor="middle" font-size="18" font-weight="bold" fill="#2E7D32">0 puertos abiertos</text>
+
+  <!-- Cloudflare -->
+  <rect x="245" y="30" width="190" height="370" rx="14" fill="#E6F0F7" stroke="#00629B" stroke-width="3"/>
+  <text x="340" y="70" text-anchor="middle" font-size="22" font-weight="bold" fill="#00629B">Cloudflare</text>
+  <text x="340" y="96" text-anchor="middle" font-size="17">Zero Trust</text>
+  <text x="340" y="150" text-anchor="middle" font-size="17">Access:</text>
+  <text x="340" y="172" text-anchor="middle" font-size="17">identidad + OTP</text>
+  <text x="340" y="225" text-anchor="middle" font-size="17">WARP: ruta privada</text>
+  <text x="340" y="247" text-anchor="middle" font-size="17">10.10.10.0/24</text>
+  <text x="340" y="315" text-anchor="middle" font-size="17">Quick tunnel</text>
+  <text x="340" y="337" text-anchor="middle" font-size="16">*.trycloudflare.com</text>
+
+  <rect x="245" y="430" width="190" height="85" rx="10" fill="#fff" stroke="#002855" stroke-width="2.5"/>
+  <text x="340" y="465" text-anchor="middle" font-size="20" font-weight="bold">GitHub</text>
+  <text x="340" y="492" text-anchor="middle" font-size="17">repo + Actions + GHCR</text>
+
+  <!-- Actores hacia Cloudflare -->
+  <line x1="200" y1="100" x2="243" y2="100" stroke="#002855" stroke-width="3" marker-end="url(#a)"/>
+  <line x1="200" y1="322" x2="243" y2="322" stroke="#002855" stroke-width="3" marker-end="url(#a)"/>
+
+  <!-- Host Proxmox -->
+  <rect x="545" y="10" width="545" height="435" rx="14" fill="#F4F6F8" stroke="#002855" stroke-width="3"/>
+  <text x="817" y="42" text-anchor="middle" font-size="21" font-weight="bold" fill="#002855">PC hogareña · Proxmox VE · 10.10.10.1</text>
+
+  <rect x="560" y="58" width="515" height="372" rx="12" fill="#fff" stroke="#00629B" stroke-width="2.5" stroke-dasharray="10 6"/>
+  <text x="575" y="86" font-size="18" font-weight="bold" fill="#00629B">vmbr1 · 10.10.10.0/24 · NAT</text>
+
+  <rect x="575" y="105" width="125" height="85" rx="10" fill="#E6F0F7" stroke="#002855" stroke-width="2.5"/>
+  <text x="637" y="137" text-anchor="middle" font-size="19" font-weight="bold">cf-admin</text>
+  <text x="637" y="162" text-anchor="middle" font-size="16">LXC · .5</text>
+  <text x="637" y="181" text-anchor="middle" font-size="16">túnel admin</text>
+
+  <!-- Cluster -->
+  <rect x="715" y="100" width="348" height="318" rx="12" fill="#E6F0F7" stroke="#002855" stroke-width="2.5"/>
+  <text x="889" y="128" text-anchor="middle" font-size="19" font-weight="bold" fill="#002855">Cluster RKE2 · Cilium (eBPF)</text>
+  <text x="889" y="153" text-anchor="middle" font-size="16">cp-01 .11 · wk-01..03 .21–.23</text>
+
+  <rect x="728" y="170" width="152" height="48" rx="8" fill="#fff" stroke="#002855" stroke-width="2"/>
+  <text x="804" y="201" text-anchor="middle" font-size="18">cloudflared</text>
+  <rect x="898" y="170" width="152" height="48" rx="8" fill="#fff" stroke="#002855" stroke-width="2"/>
+  <text x="974" y="201" text-anchor="middle" font-size="18">Gateway API</text>
+  <rect x="728" y="250" width="152" height="48" rx="8" fill="#fff" stroke="#002855" stroke-width="2"/>
+  <text x="804" y="281" text-anchor="middle" font-size="18">api ×2 (Go)</text>
+  <rect x="898" y="250" width="152" height="48" rx="8" fill="#fff" stroke="#002855" stroke-width="2"/>
+  <text x="974" y="281" text-anchor="middle" font-size="18">redis</text>
+  <line x1="880" y1="194" x2="896" y2="194" stroke="#002855" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="940" y1="218" x2="870" y2="248" stroke="#002855" stroke-width="2.5" marker-end="url(#a)"/>
+  <line x1="880" y1="274" x2="896" y2="274" stroke="#002855" stroke-width="2.5" marker-end="url(#a)"/>
+  <text x="889" y="320" text-anchor="middle" font-size="15" fill="#444">namespace app · PSA restricted</text>
+
+  <rect x="728" y="340" width="152" height="60" rx="8" fill="#fff" stroke="#00629B" stroke-width="2"/>
+  <text x="804" y="366" text-anchor="middle" font-size="18">ArgoCD</text>
+  <text x="804" y="389" text-anchor="middle" font-size="15">GitOps</text>
+  <rect x="898" y="340" width="152" height="60" rx="8" fill="#fff" stroke="#00629B" stroke-width="2"/>
+  <text x="974" y="366" text-anchor="middle" font-size="18">Hubble</text>
+  <text x="974" y="389" text-anchor="middle" font-size="15">flujos L3–L7</text>
+
+  <!-- Túneles salientes hacia Cloudflare -->
+  <path d="M575 148 H437" fill="none" stroke="#00629B" stroke-width="3.5" marker-end="url(#g)"/>
+  <text x="490" y="128" text-anchor="middle" font-size="16" fill="#00629B">túnel admin</text>
+  <text x="490" y="170" text-anchor="middle" font-size="15" fill="#00629B">(saliente)</text>
+  <path d="M728 205 H712 V320 H437" fill="none" stroke="#00629B" stroke-width="3.5" marker-end="url(#g)"/>
+  <text x="490" y="304" text-anchor="middle" font-size="16" fill="#00629B">túnel app</text>
+  <text x="490" y="342" text-anchor="middle" font-size="15" fill="#00629B">(saliente)</text>
+  <!-- GitOps: ArgoCD tira del repo -->
+  <path d="M728 375 H600 V472 H437" fill="none" stroke="#002855" stroke-width="2.5" stroke-dasharray="8 5" marker-end="url(#a)"/>
+  <text x="490" y="460" text-anchor="middle" font-size="15">pull</text>
+
+  <!-- LAN bloqueada -->
+  <rect x="760" y="478" width="330" height="42" rx="8" fill="#FBEAEA" stroke="#B3261E" stroke-width="2"/>
+  <text x="925" y="506" text-anchor="middle" font-size="17" fill="#B3261E">LAN de la casa · 192.168.0.0/16</text>
+  <line x1="700" y1="430" x2="700" y2="498" stroke="#B3261E" stroke-width="3" stroke-dasharray="7 5"/>
+  <line x1="700" y1="498" x2="758" y2="498" stroke="#B3261E" stroke-width="3" stroke-dasharray="7 5"/>
+  <text x="700" y="476" text-anchor="middle" font-size="30" font-weight="bold" fill="#B3261E">✕</text>
+  <text x="640" y="520" text-anchor="middle" font-size="15" fill="#B3261E">DROP en firewall</text>
+</svg>
