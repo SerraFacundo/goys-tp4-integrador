@@ -59,6 +59,7 @@
 | 2026-11-15 | N08: controller de Sealed Secrets `v0.41.2` vía ArgoCD y SealedSecret `redis-auth`; la App X pasa a `Running`. Sección en `docs/hardening.md` | Agustín Manrique |        |
 | 2026-11-15 | N03: snapshots de etcd (automáticos + manual), backup manual de `wk-03`, job nocturno (lo crea Martín) y restore probado como VM aislada. Doc en `docs/backups.md` | Agustín Manrique |        |
 | 2026-11-15 | N01 completo: cambio visible en la app, CI publica `goys-app:fa923d5` y ArgoCD lo despliega solo. N04: `preStop` en `api`, drain sin cortes y caída dura de un worker (≈47 s con errores hasta `NotReady`); capturas en `capturas/07-app/` | Facundo Serra |        |
+| 2026-11-15 | R22: nmap a la IP pública de la casa desde otra red y sin WARP (65535 TCP y top 50 UDP): ningún puerto abierto, con la app respondiendo por el quick tunnel; capturas en `capturas/08-publicacion/` | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones
 

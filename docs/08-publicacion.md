@@ -85,6 +85,25 @@ curl -sS https://<url>.trycloudflare.com/healthz
 | Celular con datos: la app carga | Pendiente |
 | Celular con datos: mensaje nuevo visible al recargar | Pendiente |
 
+## IP pública sin puertos abiertos (R22)
+
+Escaneo de la IP pública de la casa del 15/11, desde otra red (la casa de Facundo) y **sin** WARP, con la app abierta por el quick tunnel al mismo tiempo. La IP no se publica y está tapada en las capturas.
+
+```bash
+sudo nmap -Pn -sS -p- -T4 --min-rate 2000 <ip-publica>   # los 65535 puertos TCP
+sudo nmap -Pn -sU --top-ports 50 <ip-publica>            # los 50 UDP más comunes
+```
+
+| Escaneo | Resultado | Captura |
+|---------|-----------|---------|
+| TCP, 65535 puertos | Ninguno abierto: 64113 `filtered` (*admin-prohibited*: el router responde con ICMP de rechazo) y 1422 `filtered` sin respuesta | [`r22-01-nmap-tcp-app.png`](../capturas/08-publicacion/r22-01-nmap-tcp-app.png) |
+| UDP, top 50 | Ninguno abierto: los 50 `open\|filtered` sin respuesta | [`r22-02-nmap-udp-app.png`](../capturas/08-publicacion/r22-02-nmap-udp-app.png) |
+| App por el quick tunnel, en el mismo momento | Carga el libro de visitas | Las mismas capturas, arriba |
+
+La IP es pública (Telmex/Claro), sin CGNAT, así que el escaneo llega al router de la casa. Ningún puerto abierto y la app igual responde desde internet: la entrada es el túnel saliente de `cloudflared`, no un puerto publicado.
+
+`-sS` necesita root; sin `sudo` nmap hace conexiones TCP completas y con todo filtrado tarda horas. En UDP, `open|filtered` sin respuesta es lo esperable cuando el router descarta los paquetes: no hay ningún servicio que conteste.
+
 ## Pendiente
 
 - **NetworkPolicies (R13):** con default-deny en `cloudflared` hay que permitir la salida a DNS, al Gateway (`8000/TCP`) y a Cloudflare (`7844` TCP y UDP, `443/TCP` para registrar el quick tunnel).
