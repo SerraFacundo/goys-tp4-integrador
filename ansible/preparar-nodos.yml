@@ -1,0 +1,24 @@
+---
+# R16 + P02: deja un nodo Ubuntu 24.04 recien clonado listo para instalar RKE2.
+# Uso: ansible-playbook preparar-nodos.yml [--limit wk-01]
+- name: Preparar nodos del cluster
+  hosts: all
+  gather_facts: false
+  pre_tasks:
+    - name: Esperar a que el nodo responda por SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+    - name: Esperar a que termine cloud-init
+      ansible.builtin.command: cloud-init status --wait
+      register: cloud_init
+      changed_when: false
+      # rc 2 = termino con errores recuperables
+      failed_when: cloud_init.rc not in [0, 2]
+
+    - name: Recolectar facts
+      ansible.builtin.setup:
+
+  roles:
+    - base
+    - hardening

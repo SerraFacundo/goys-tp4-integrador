@@ -1,0 +1,40 @@
+---
+- name: Actualizar el indice de paquetes
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600
+
+- name: Aplicar actualizaciones pendientes
+  ansible.builtin.apt:
+    upgrade: safe
+  when: base_actualizar_paquetes
+
+- name: Instalar paquetes base
+  ansible.builtin.apt:
+    name: "{{ base_paquetes }}"
+    state: present
+    install_recommends: false
+
+- name: Desactivar swap en caliente
+  ansible.builtin.command: swapoff -a
+  when: ansible_facts.swaptotal_mb | int > 0
+  changed_when: true
+
+- name: Quitar swap de fstab
+  ansible.builtin.replace:
+    path: /etc/fstab
+    regexp: '^([^#\n].*\sswap\s.*)$'
+    replace: '# \1'
+
+- name: Configurar parametros de kernel para RKE2
+  ansible.builtin.copy:
+    dest: /etc/sysctl.d/60-rke2-cis.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Administrado por Ansible (rol base)
+      {% for clave, valor in base_sysctl | dictsort %}
+      {{ clave }} = {{ valor }}
+      {% endfor %}
+  notify: Recargar sysctl

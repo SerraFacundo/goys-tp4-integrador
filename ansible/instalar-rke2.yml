@@ -1,0 +1,33 @@
+---
+# R17: reproduce la instalacion de M08-M09 (docs/05-cluster.md).
+# Requiere los nodos preparados con preparar-nodos.yml (o usar cluster.yml).
+# Uso:
+#   ansible-playbook instalar-rke2.yml --check --diff   # contra el cluster vivo: no deberia cambiar nada
+#   ansible-playbook instalar-rke2.yml --limit wk-03    # un worker recreado (R18)
+- name: Server de RKE2
+  hosts: rke2_servers
+  roles:
+    - rke2_server
+
+# De a un worker, igual que en M09: si uno falla, los otros no se tocan.
+- name: Agents de RKE2
+  hosts: rke2_agents
+  serial: 1
+  roles:
+    - rke2_agent
+
+- name: Estado del cluster
+  hosts: rke2_servers
+  gather_facts: false
+  tasks:
+    - name: Listar los nodos
+      ansible.builtin.command: >-
+        /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml
+        get nodes -o wide
+      register: rke2_nodos
+      changed_when: false
+      check_mode: false
+
+    - name: Mostrar los nodos
+      ansible.builtin.debug:
+        var: rke2_nodos.stdout_lines

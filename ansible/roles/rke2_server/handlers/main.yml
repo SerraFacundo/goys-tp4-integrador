@@ -1,0 +1,9 @@
+---
+# Solo si el nodo ya tenia RKE2: en una instalacion nueva el servicio se
+# arranca recien despues de escribir la configuracion.
+- name: Reiniciar rke2-server
+  ansible.builtin.systemd_service:
+    name: rke2-server
+    state: restarted
+  when: rke2_estaba_instalado
+  listen: Reiniciar rke2

@@ -13,6 +13,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 7. App | [07-app.md](07-app.md) | App definida |
 | 8. Publicación | [08-publicacion.md](08-publicacion.md) | Manifiesto del quick tunnel (R09); falta la prueba desde internet (R10) |
 | 8. Hardening | [hardening.md](hardening.md) | R14 y N08 hechas; R13, R15 y N07 en curso |
+| 9. Operación | [09-ansible.md](09-ansible.md) | Playbooks de P02, R16 y R17 probados en los 4 nodos; `wk-03` recreado solo con Ansible (R18) |
 | — | [modelo-amenazas.md](modelo-amenazas.md) | Modelo de amenazas STRIDE (N09) |
 | — | [hardening-tetragon.md](hardening-tetragon.md) | Detección de shells en pods con Tetragon (N05): probada con capturas; falta repetirla con `redis` (N08) |
 | — | [runbook-rotacion-token-admin.md](runbook-rotacion-token-admin.md) | Runbook: rotación del token de `lab-admin` (P04) |
