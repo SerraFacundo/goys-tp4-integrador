@@ -10,6 +10,8 @@
 
 **Listo cuando (M17, #32):** la UI de ArgoCD abre por WARP y no desde internet.
 
+**Listo cuando (M19, #34):** el repo del grupo aparece `Successful` en ArgoCD.
+
 ## Reinstalar desde cero (R17)
 
 Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su sección.
@@ -28,6 +30,7 @@ Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su 
 | 10 | notebook | `kubectl apply -f k8s/rbac/integrantes.yaml` y certificados nuevos ([Acceso por integrante](#acceso-por-integrante-m14)) |
 | 11 | notebook | Namespace e instalación de ArgoCD `v3.6.1`, cambio de la contraseña de `admin` ([ArgoCD](#argocd-m16)) |
 | 12 | notebook | `kubectl apply -f k8s/argocd/server-nodeport.yaml` ([UI de ArgoCD](#ui-de-argocd-por-warp-m17)) |
+| 13 | notebook | `kubectl apply -f k8s/argocd/repo-goys.yaml` ([Repo en ArgoCD](#repo-del-grupo-en-argocd-m19)) |
 
 En una reinstalación, Hubble y Gateway API ya van en el `HelmChartConfig` del paso 3. Los CRDs de Gateway API tienen que estar antes de que arranque el operator; si no, Cilium desactiva el soporte y hay que reiniciar el operator después de aplicarlos (paso 9). Una CA nueva invalida los kubeconfig anteriores: hay que generar certificados nuevos para cada integrante.
 
@@ -698,3 +701,20 @@ URL: `https://10.10.10.21:30443` (o `.22`, `.23`). Usuario `admin`, contraseña 
 | Con WARP, `https://10.10.10.21:30443` | Abre la UI de ArgoCD `v3.6.1` | [`m17-1-ui-con-warp.png`](../capturas/05-cluster/m17-1-ui-con-warp.png) |
 | Sin WARP, misma URL | `ERR_CONNECTION_TIMED_OUT` | [`m17-2-ui-sin-warp.png`](../capturas/05-cluster/m17-2-ui-sin-warp.png) |
 | Desde la URL `*.trycloudflare.com` | Pendiente de R09 (quick tunnel) | — |
+
+## Repo del grupo en ArgoCD (M19)
+
+El repo es público, así que ArgoCD lo lee por HTTPS sin credenciales. Se registra con un Secret que ArgoCD reconoce por el label `argocd.argoproj.io/secret-type: repository`. Solo lleva `type: git` y la URL, sin token, por eso está versionado: [`k8s/argocd/repo-goys.yaml`](../k8s/argocd/repo-goys.yaml).
+
+```bash
+kubectl apply -f k8s/argocd/repo-goys.yaml
+argocd login 10.10.10.21:30443 --insecure --username admin   # con WARP
+argocd repo list
+```
+
+```
+TYPE  NAME  REPO                                                 INSECURE  OCI    LFS    CREDS  STATUS      MESSAGE  PROJECT
+git         https://github.com/SerraFacundo/goys-tp4-integrador  false     false  false  false  Successful
+```
+
+Carpetas que van a leer las Applications (M20): `k8s/app`, `k8s/cloudflared` (vacía por ahora, con `.gitkeep`) y `k8s/hardening`.

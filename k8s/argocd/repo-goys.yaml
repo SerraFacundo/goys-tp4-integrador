@@ -1,0 +1,16 @@
+# M19: repo del grupo registrado en ArgoCD.
+# Es público: se lee por HTTPS sin credenciales. El Secret solo lleva tipo y URL,
+# sin token, por eso se puede versionar. ArgoCD lo reconoce por el label
+# argocd.argoproj.io/secret-type: repository.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: repo-goys-tp4-integrador
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+    argocd.argoproj.io/secret-type: repository
+type: Opaque
+stringData:
+  type: git
+  url: https://github.com/SerraFacundo/goys-tp4-integrador
