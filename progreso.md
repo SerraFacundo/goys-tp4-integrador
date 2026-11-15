@@ -57,6 +57,7 @@
 | 2026-11-15 | M06 cerrada: salida a internet verificada desde `cp-01` (`ping` y `curl` OK) después del arreglo de NAT de Martín; docs de la etapa 4 actualizados | Agustín Manrique |        |
 | 2026-11-15 | R14: pod privilegiado rechazado por PSA `restricted` en el namespace `app`; sección en `docs/hardening.md` con capturas | Agustín Manrique |        |
 | 2026-11-15 | N08: controller de Sealed Secrets `v0.41.2` vía ArgoCD y SealedSecret `redis-auth`; la App X pasa a `Running`. Sección en `docs/hardening.md` | Agustín Manrique |        |
+| 2026-11-15 | N03: snapshots de etcd (automáticos + manual), backup manual de `wk-03`, job nocturno (lo crea Martín) y restore probado como VM aislada. Doc en `docs/backups.md` | Agustín Manrique |        |
 
 ## 🚧 Pendientes / decisiones
 
