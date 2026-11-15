@@ -8,6 +8,8 @@
 
 **Listo cuando (M16, #31):** pods de ArgoCD `Running` en el namespace `argocd`.
 
+**Listo cuando (M17, #32):** la UI de ArgoCD abre por WARP y no desde internet.
+
 ## Reinstalar desde cero (R17)
 
 Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su sección.
@@ -25,6 +27,7 @@ Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su 
 | 9 | notebook | CRDs de Gateway API, reinicio de operator y agentes, y `k8s/gateway-api/gateway.yaml` ([Gateway API](#gateway-api-m13)) |
 | 10 | notebook | `kubectl apply -f k8s/rbac/integrantes.yaml` y certificados nuevos ([Acceso por integrante](#acceso-por-integrante-m14)) |
 | 11 | notebook | Namespace e instalación de ArgoCD `v3.6.1`, cambio de la contraseña de `admin` ([ArgoCD](#argocd-m16)) |
+| 12 | notebook | `kubectl apply -f k8s/argocd/server-nodeport.yaml` ([UI de ArgoCD](#ui-de-argocd-por-warp-m17)) |
 
 En una reinstalación, Hubble y Gateway API ya van en el `HelmChartConfig` del paso 3. Los CRDs de Gateway API tienen que estar antes de que arranque el operator; si no, Cilium desactiva el soporte y hay que reiniciar el operator después de aplicarlos (paso 9). Una CA nueva invalida los kubeconfig anteriores: hay que generar certificados nuevos para cada integrante.
 
@@ -672,3 +675,26 @@ kubectl -n argocd delete secret argocd-initial-admin-secret
 | `kubectl -n argocd get pods` | 7 pods `Running`, 0 reinicios |
 | `argocd login localhost:8080 --insecure --username admin` (contraseña nueva) | `'admin:login' logged in successfully` |
 | `kubectl -n argocd get secret argocd-initial-admin-secret` | `NotFound` |
+
+## UI de ArgoCD por WARP (M17)
+
+La UI se publica como NodePort `30443` en las IPs de los nodos, que solo se alcanzan desde `10.10.10.0/24`, es decir, por WARP. No cuelga de `goys-gateway`: el quick tunnel (R09) apunta a ese Gateway y todo lo que tenga rutas ahí queda público.
+
+[`k8s/argocd/server-nodeport.yaml`](../k8s/argocd/server-nodeport.yaml) es un Service aparte, `argocd-server-warp`, que apunta a los mismos pods que `argocd-server`. El Service del manifiesto oficial no se toca.
+
+```bash
+kubectl apply -f k8s/argocd/server-nodeport.yaml
+```
+
+- **TLS:** lo sigue terminando `argocd-server` con su certificado autofirmado (el navegador avisa "Not secure"). No hay Gateway en el medio, así que `server.insecure` queda en su valor por defecto.
+- **NetworkPolicy:** a diferencia de Hubble, no hace falta una excepción. El manifiesto de ArgoCD trae `argocd-server-network-policy`, que admite todo el tráfico de entrada a `argocd-server`. Lo que impide el acceso desde afuera es que los nodos no tienen IP pública.
+
+URL: `https://10.10.10.21:30443` (o `.22`, `.23`). Usuario `admin`, contraseña en el gestor de Martín (usuarios por integrante en M18).
+
+### Verificación
+
+| Prueba | Resultado | Captura |
+|--------|-----------|---------|
+| Con WARP, `https://10.10.10.21:30443` | Abre la UI de ArgoCD `v3.6.1` | [`m17-1-ui-con-warp.png`](../capturas/05-cluster/m17-1-ui-con-warp.png) |
+| Sin WARP, misma URL | `ERR_CONNECTION_TIMED_OUT` | [`m17-2-ui-sin-warp.png`](../capturas/05-cluster/m17-2-ui-sin-warp.png) |
+| Desde la URL `*.trycloudflare.com` | Pendiente de R09 (quick tunnel) | — |

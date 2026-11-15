@@ -1,0 +1,23 @@
+# M17: UI de ArgoCD por NodePort en las IPs de los nodos (10.10.10.0/24).
+# Esa red solo se alcanza por WARP; el quick tunnel (R09) apunta al Gateway
+# de la app y no llega acá. No se usa el Gateway goys-gateway a propósito.
+# Service aparte para no modificar el argocd-server del manifiesto oficial.
+# TLS lo sigue terminando argocd-server (certificado autofirmado), así que no
+# hace falta server.insecure.
+apiVersion: v1
+kind: Service
+metadata:
+  name: argocd-server-warp
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  type: NodePort
+  selector:
+    app.kubernetes.io/name: argocd-server
+  ports:
+    - name: https
+      port: 443
+      targetPort: 8080
+      nodePort: 30443
+      protocol: TCP

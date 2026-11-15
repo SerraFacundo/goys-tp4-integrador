@@ -24,3 +24,4 @@ La propuesta en PDF no se actualiza. Estos puntos cambiaron o se definieron dura
 | Claves de `kubectl` | Cada integrante genera su clave privada | Las generó Martín y entregó cada kubeconfig por WhatsApp; certificados de 60 días | El resto del grupo no estaba y M14 traba todas sus tareas. Mensajes y copias locales borrados después de la entrega |
 | Instalación de ArgoCD | — | `v3.6.1` fija, manifiesto sin HA, aplicado a mano una vez | Alguien tiene que instalar ArgoCD antes de que ArgoCD aplique el resto. Sin HA alcanza para el lab y ahorra RAM |
 | PSA en `argocd` | — | `restricted`, sin exención | Los pods de ArgoCD 3.6 cumplen el perfil (`--dry-run=server` sin avisos) |
+| UI de ArgoCD | — | NodePort `30443` en un Service aparte, solo por `10.10.10.0/24` (WARP); TLS de ArgoCD | Fuera del Gateway de la app, al que apunta el quick tunnel. Mismo esquema que Hubble, sin LB IPAM |
