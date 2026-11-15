@@ -123,11 +123,34 @@ Con `--limit wk-03` no se toca `cp-01`: el playbook solo entra para leer el toke
 
 | Prueba | Resultado | Captura |
 |--------|-----------|---------|
-| `drain` y `delete node` | Pendiente | — |
-| VM 123 recreada desde la plantilla | Pendiente | — |
-| `cluster.yml --limit wk-03` sin errores, tiempo total | Pendiente | — |
-| `kubectl get nodes`: `wk-03 Ready` con `v1.36.6+rke2r1` | Pendiente | — |
+| `drain` y `delete node` | `wk-03` drenado (se desalojó `argocd-application-controller-0`; Cilium y Tetragon son DaemonSets y se ignoran). Después del `delete`, el Secret `wk-03.node-password.rke2` da `NotFound`: RKE2 lo borra con el nodo | [`r18-01-drain-delete.png`](../capturas/09-ansible/r18-01-drain-delete.png) |
+| VM 123 recreada desde la plantilla | *Clone* de 9000 de 19:56:03 a 19:57:01 (≈1 min), *Start* a las 19:58:13 | [`r18-02-proxmox-clon.png`](../capturas/09-ansible/r18-02-proxmox-clon.png) |
+| `cluster.yml --limit wk-03`, primera corrida | Preparó el nodo, instaló RKE2 y `wk-03` quedó `Ready`, pero la tarea de espera no lo detectó (ver [Incidente](#incidente-la-espera-del-ready-no-terminaba)). Cortada a mano a los 6 min 05 s | [`r18-03-ansible-1.png`](../capturas/09-ansible/r18-03-ansible-1.png) |
+| `cluster.yml --limit wk-03`, con el arreglo | `ok=27`, `changed=0`, `failed=0` en 1 min 08 s: el nodo ya estaba completo y la espera pasó al primer intento | [`r18-03-ansible-2.png`](../capturas/09-ansible/r18-03-ansible-2.png) |
+| `kubectl get nodes`: `wk-03 Ready` con `v1.36.6+rke2r1` | `Ready` unos 65 s después de registrarse en el cluster (eventos `RegisteredNode` → `NodeReady`) | Pendiente |
 | Cilium y Tetragon corriendo en `wk-03` (`kubectl get pods -A -o wide \| grep wk-03`) | Pendiente | — |
 | `verificar-nodos.yml --limit wk-03` | Pendiente (`Hardening OK`) | — |
+
+**Tiempo total:** de *Clone* a nodo `Ready` fueron unos 10 minutos, casi todo en la primera corrida de Ansible (actualización de paquetes e instalación de RKE2). Sin intervención manual en el nodo: solo la web de Proxmox y `cluster.yml`.
+
+`wk-03` arranca con el kernel `6.8.0-147` de la imagen, mientras los otros nodos tienen el `149`. El rol `base` instala el kernel nuevo, pero el nodo no se reinicia solo (decisión de P02). Se pasa al nuevo con un reinicio con `drain`, como cualquier parche de kernel.
+
+### Incidente: la espera del `Ready` no terminaba
+
+En la primera corrida, la tarea *Esperar a que el nodo quede Ready* reintentó durante más de 3 minutos (`FAILED - RETRYING`) aunque `kubectl get nodes` ya mostraba `wk-03 Ready`, con Cilium y Tetragon corriendo.
+
+**Causa:** la tarea consulta el estado con:
+
+```
+kubectl get node wk-03 -o jsonpath={.status.conditions[?(@.type=="Ready")].status}
+```
+
+El módulo `command` de Ansible separa los argumentos como una shell y **les saca las comillas**: kubectl recibía `@.type==Ready` en vez de `@.type=="Ready"`. Esa expresión no coincide con nada, la salida quedaba vacía y nunca era `True`. Con 60 reintentos cada 10 s, la corrida habría terminado en error a los 10 minutos con el nodo funcionando.
+
+No se vio en la prueba de R17 porque con `--check` esa tarea se saltea: es la primera vez que corría de verdad.
+
+**Arreglo:** el argumento va entre comillas simples, que conservan las dobles de adentro (`-o 'jsonpath={...@.type=="Ready"...}'`), en los roles `rke2_agent` y `rke2_server`. Se cortó la corrida con Ctrl+C y se volvió a correr: como el playbook es idempotente, no repitió nada (`changed=0`) y la espera pasó al primer intento.
+
+**Aprendizaje:** una tarea que solo corre fuera de `--check` no queda probada con `--check`. Esta prueba de R18 es la que la validó.
 
 Para el alta de un nodo **nuevo** (otro nombre e IP), ver R19.
