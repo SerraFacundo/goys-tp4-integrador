@@ -10,6 +10,8 @@
 
 **Listo cuando (M17, #32):** la UI de ArgoCD abre por WARP y no desde internet.
 
+**Listo cuando (M18, #33):** los 4 integrantes entran a la UI de ArgoCD con su usuario.
+
 **Listo cuando (M19, #34):** el repo del grupo aparece `Successful` en ArgoCD.
 
 **Listo cuando (M20, #35):** las Applications `hardening`, `app` y `cloudflared` aparecen en la UI de ArgoCD.
@@ -36,6 +38,7 @@ Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su 
 | 12 | notebook | `kubectl apply -f k8s/argocd/server-nodeport.yaml` ([UI de ArgoCD](#ui-de-argocd-por-warp-m17)) |
 | 13 | notebook | `kubectl apply -f k8s/argocd/repo-goys.yaml` ([Repo en ArgoCD](#repo-del-grupo-en-argocd-m19)) |
 | 14 | notebook | Parche de health en `argocd-cm` y `kubectl apply -f k8s/argocd/root.yaml` ([Applications](#applications-de-argocd-m20)). Desde acá ArgoCD aplica todo lo demás |
+| 15 | notebook | Parches de cuentas (`argocd-cm`) y permisos (`argocd-rbac-cm`), contraseñas con `argocd account update-password` ([Usuarios](#usuarios-de-argocd-m18)) |
 
 En una reinstalación, Hubble y Gateway API ya van en el `HelmChartConfig` del paso 3. Los CRDs de Gateway API tienen que estar antes de que arranque el operator; si no, Cilium desactiva el soporte y hay que reiniciar el operator después de aplicarlos (paso 9). Una CA nueva invalida los kubeconfig anteriores: hay que generar certificados nuevos para cada integrante.
 
@@ -803,3 +806,40 @@ Normal   OperationCompleted   application/app   Partial sync operation to 5acfe1
 `Partial` porque solo reaplicó el recurso que cambió (el Deployment `api`). `argocd app history` no suma una línea: el historial cuenta syncs a commits nuevos, y `selfHeal` reaplica el mismo.
 
 Captura con la salida completa: [`m21-1-drift-terminal.png`](../capturas/05-cluster/m21-1-drift-terminal.png).
+
+## Usuarios de ArgoCD (M18)
+
+Un usuario por integrante en lugar de compartir `admin`. Los dos ConfigMaps no tienen secretos y están en el repo; se aplican a mano como parche, igual que el health check de M20 (`argocd-cm` y `argocd-rbac-cm` vienen del manifiesto de instalación y no los maneja ninguna Application).
+
+- [`k8s/argocd/argocd-cm-cuentas.yaml`](../k8s/argocd/argocd-cm-cuentas.yaml): `accounts.<usuario>: login` para `martin`, `facundo`, `agustin`, `manuel` y `baltazar`. Solo login (UI y CLI), sin API keys.
+- [`k8s/argocd/argocd-rbac-cm.yaml`](../k8s/argocd/argocd-rbac-cm.yaml): permisos.
+
+| Rol | Usuarios | Puede |
+|-----|----------|-------|
+| `role:admin` | `martin` | Todo, incluidos repos, proyectos, cuentas y config de ArgoCD |
+| `role:operador` | `facundo`, `agustin`, `manuel`, `baltazar` | Ver todo, sync, rollback, pausar el auto-sync (`update`), acciones sobre recursos y logs. No puede borrar Applications ni tocar repos, proyectos o cuentas |
+| `role:readonly` | Cualquier otro usuario autenticado (`policy.default`) | Solo ver |
+
+`role:operador` cubre lo que pide el [runbook](runbook-argocd.md); los integrantes igual son `cluster-admin` por `kubectl` (M14), así que solo lectura no protegería nada.
+
+```bash
+kubectl -n argocd patch cm argocd-cm --type merge --patch-file k8s/argocd/argocd-cm-cuentas.yaml
+kubectl -n argocd patch cm argocd-rbac-cm --type merge --patch-file k8s/argocd/argocd-rbac-cm.yaml
+argocd login 10.10.10.21:30443 --insecure --username admin
+for u in martin facundo agustin manuel baltazar; do argocd account update-password --account $u; done
+```
+
+`update-password` pide la contraseña del usuario logueado (`admin`) y la nueva, a mano, para que no quede en el historial. `martin` tiene una propia, en el gestor de Martín. Los otros 4 arrancan con una inicial común que se pasó por privado: ArgoCD no obliga a cambiarla, así que cada uno la cambia al entrar por primera vez (UI → **User Info** → **Update Password**, o `argocd account update-password`).
+
+### Verificación
+
+| Comando | Resultado |
+|---------|-----------|
+| `argocd login ... --username martin` | `'martin:login' logged in successfully` |
+| `argocd account can-i update applications '*/*'` (martin) | `yes` |
+| `argocd login ... --username facundo` | `'facundo:login' logged in successfully` |
+| `argocd account can-i sync applications '*/*'` (facundo) | `yes` |
+| `argocd account can-i delete applications '*/*'` (facundo) | `no` |
+| `argocd account can-i update accounts '*'` (facundo) | `no` |
+
+Pendiente: que los 4 entren con su usuario y cambien la contraseña. Después se deshabilita `admin` (`admin.enabled: "false"` en `argocd-cm`).

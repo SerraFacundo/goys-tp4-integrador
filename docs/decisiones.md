@@ -26,3 +26,4 @@ La propuesta en PDF no se actualiza. Estos puntos cambiaron o se definieron dura
 | PSA en `argocd` | — | `restricted`, sin exención | Los pods de ArgoCD 3.6 cumplen el perfil (`--dry-run=server` sin avisos) |
 | UI de ArgoCD | — | NodePort `30443` en un Service aparte, solo por `10.10.10.0/24` (WARP); TLS de ArgoCD | Fuera del Gateway de la app, al que apunta el quick tunnel. Mismo esquema que Hubble, sin LB IPAM |
 | Applications de ArgoCD | — | App-of-apps (`root`) con `hardening`, `app` y `cloudflared`; sync automático con `prune` y `selfHeal` | Las Applications quedan versionadas y solo `root` se aplica a mano |
+| Usuarios de ArgoCD | — | Cuentas locales por integrante; `martin` admin, el resto `role:operador` (sync, rollback, pausar auto-sync) | Sin SSO para el lab. Todos son `cluster-admin` por kubectl, así que solo lectura en ArgoCD no protegería nada; borrar Applications y tocar la config queda reservado |
