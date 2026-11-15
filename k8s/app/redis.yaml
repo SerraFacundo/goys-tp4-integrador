@@ -1,5 +1,6 @@
 # App X (R07): Redis donde la API guarda los mensajes. Ver docs/07-app.md.
 # Datos en emptyDir: si el pod se reinicia, los mensajes se pierden (decisión de R02).
+# Una sola réplica: si cae su worker, la app falla hasta que se reprograme (límite de N04).
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -20,6 +21,14 @@ spec:
         app.kubernetes.io/part-of: goys-tp4
     spec:
       automountServiceAccountToken: false
+      # Solo en workers, como api (cp-01 anda justo de RAM).
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
       securityContext:
         runAsNonRoot: true
         runAsUser: 999 # usuario "redis" de la imagen oficial

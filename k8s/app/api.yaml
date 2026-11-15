@@ -9,7 +9,7 @@ metadata:
     app.kubernetes.io/name: api
     app.kubernetes.io/part-of: goys-tp4
 spec:
-  replicas: 1
+  replicas: 2 # N04: sin estado, sigue atendiendo si cae un worker
   selector:
     matchLabels:
       app.kubernetes.io/name: api
@@ -20,6 +20,22 @@ spec:
         app.kubernetes.io/part-of: goys-tp4
     spec:
       automountServiceAccountToken: false
+      # N04: solo en workers (cp-01 no tiene taint y anda justo de RAM)...
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                  - key: node-role.kubernetes.io/control-plane
+                    operator: DoesNotExist
+      # ...y cada réplica en un worker distinto.
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: kubernetes.io/hostname
+          whenUnsatisfiable: DoNotSchedule
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: api
       securityContext:
         runAsNonRoot: true
         runAsUser: 10001
@@ -87,3 +103,18 @@ spec:
     - name: http
       port: 8080
       targetPort: http
+---
+# N04: un drain no puede desalojar las dos réplicas a la vez.
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: api
+  namespace: app
+  labels:
+    app.kubernetes.io/name: api
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: api

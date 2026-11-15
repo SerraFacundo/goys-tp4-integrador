@@ -94,7 +94,7 @@ Las imágenes se publican en GHCR con tag fijo, sin `:latest`, y son públicas: 
 Están en [`k8s/app/`](../k8s/app/). ArgoCD los aplica; nadie los aplica a mano.
 
 - `api.yaml` y `redis.yaml` tienen un Deployment y un Service `ClusterIP` cada uno, con el `securityContext` de PSA `restricted`, requests y limits, probes y `emptyDir` en `/tmp`.
-- `httproute.yaml` publica `api:8080` a través del Gateway de M13. El nombre `goys-gateway` y el namespace `gateway` son una propuesta a confirmar con Martín.
+- `httproute.yaml` publica `api:8080` a través del Gateway `goys-gateway` (namespace `gateway`) de M13, definido en [`k8s/gateway-api/gateway.yaml`](../k8s/gateway-api/gateway.yaml).
 - Los Deployments leen el Secret `redis-auth` por nombre. El Secret lo crea N08 como SealedSecret; en el repo no hay ninguno en claro.
 
 Validación:
@@ -103,7 +103,30 @@ Validación:
 podman run --rm -v $PWD/k8s/app:/m:ro,Z ghcr.io/yannh/kubeconform:v0.6.7 -strict -summary \
   -schema-location default \
   -schema-location 'https://raw.githubusercontent.com/datreeio/CRDs-catalog/main/{{.Group}}/{{.ResourceKind}}_{{.ResourceAPIVersion}}.json' /m
-# Summary: 5 resources found in 3 files - Valid: 5, Invalid: 0, Errors: 0, Skipped: 0
+# Summary: 6 resources found in 3 files - Valid: 6, Invalid: 0, Errors: 0, Skipped: 0
+```
+
+## Resiliencia (N04)
+
+`api` no guarda estado, así que corre con dos réplicas. Si cae un worker, la otra sigue atendiendo.
+
+| Pieza | Dónde | Qué hace |
+|-------|-------|----------|
+| `replicas: 2` | Deployment `api` | Dos pods detrás del mismo Service |
+| `topologySpreadConstraints` (`kubernetes.io/hostname`, `maxSkew: 1`, `DoNotSchedule`) | Deployment `api` | Cada réplica en un nodo distinto |
+| `nodeAffinity` con `node-role.kubernetes.io/control-plane` `DoesNotExist` | `api` y `redis` | Los pods van solo a los workers. `cp-01` no tiene taint y anda justo de RAM |
+| `PodDisruptionBudget` `api`, `minAvailable: 1` | `api.yaml` | Un `kubectl drain` no puede desalojar las dos réplicas a la vez |
+
+Límite: Redis tiene una sola réplica y guarda los datos en `emptyDir`. Si se cae el worker donde corre, la app devuelve error hasta que Kubernetes lo reprograme en otro worker, y los mensajes se pierden. Para la prueba se apaga un worker que no tenga a Redis. Replicarlo pide Sentinel o un StatefulSet con volumen, y el cluster no tiene StorageClass ni RAM de sobra (M22).
+
+La prueba en el cluster queda pendiente hasta que Argo despliegue la app (R08) y exista el Secret `redis-auth` (N08). Pasos, en el issue N04:
+
+```bash
+kubectl -n app get pods -o wide                 # réplicas de api en workers distintos; anotar dónde está redis
+while true; do curl -s -o /dev/null -w '%{http_code}\n' http://10.10.10.21:8000/; sleep 1; done   # en otra terminal
+kubectl drain <worker sin redis> --ignore-daemonsets --delete-emptydir-data
+kubectl uncordon <worker>
+# después: Stop de la VM desde Proxmox, esperar NotReady, volver a prenderla
 ```
 
 ## CI y firma (N01, N02)

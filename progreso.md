@@ -51,6 +51,7 @@
 | 2026-11-14 | N01 y N02 probados en `main`: imagen `goys-app:3d2ad79` publicada y firmada, bump automático (`c5ec049`) y `cosign verify` OK | Facundo Serra |        |
 | 2026-11-14 | C04: capturas de R04, R06, N01 y N02 en `capturas/07-app/` y de C01 (`warp-cli status` y cliente WARP conectado y UI de Proxmox por WARP) en `capturas/03-acceso/` | Facundo Serra |        |
 | 2026-11-14 | CI publica la imagen en formato docker para que podman respete el `HEALTHCHECK` (hallado al sacar la captura de R04) | Facundo Serra |        |
+| 2026-11-15 | N04: manifiestos de resiliencia (`api` con 2 réplicas, topology spread, PDB `minAvailable: 1`; pods solo en workers). Falta la prueba en el cluster | Facundo Serra |        |
 
 ## 🚧 Pendientes / decisiones
 
