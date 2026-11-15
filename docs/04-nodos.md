@@ -66,7 +66,7 @@ Los clones se hacen de a uno: mientras se copia, Proxmox bloquea la VM nueva (`V
 
 Capturas: [hardware de cp-01](../capturas/04-nodos/m04-03-hardware-cp-01.png) · [primer arranque](../capturas/04-nodos/m04-04-consola-cp-01.png) · [plantilla y 4 nodos en Proxmox](../capturas/04-nodos/m05-01-arbol-nodos.png)
 
-## Verificación de SSH — hecho
+## Verificación — hecho
 
 Desde la notebook con WARP conectado:
 
@@ -85,4 +85,26 @@ ping -c2 10.10.10.5       # cf-admin responde
 
 Captura: [SSH a cp-01](../capturas/04-nodos/m06-01-ssh-cp-01-sin-internet.png)
 
-Pendiente: salida a internet de los nodos, clave de Martín y `apt update && apt upgrade` en los 4 nodos cuando haya salida.
+### Salida a internet
+
+En la primera prueba los nodos no salían a internet. La causa estaba en el host: con `firewall=1` en la placa, el tráfico de la VM pasa por un bridge intermedio y conntrack lo registraba sin NAT. Martín lo resolvió con una regla en la tabla `raw` (ver [etapa 2](02-red-interna.md)). También cargó su clave SSH en los 4 nodos y en la plantilla, y actualizó los nodos (`apt upgrade` y reinicio).
+
+Por ese reinicio cloud-init regeneró las claves de host. En la notebook hay que borrar las anteriores antes de volver a conectarse:
+
+```bash
+for ip in 11 21 22 23; do ssh-keygen -R 10.10.10.$ip; done
+```
+
+Verificación desde `cp-01` (15/11/2026):
+
+```bash
+hostname; uname -r; ping -c3 1.1.1.1; curl -sI https://ubuntu.com | head -1
+```
+
+| Prueba | Resultado |
+|--------|-----------|
+| Kernel después de la actualización | `6.8.0-149-generic` |
+| `ping -c3 1.1.1.1` | 0 % packet loss |
+| `curl -sI https://ubuntu.com` (salida y DNS) | `HTTP/2 200` |
+
+Captura: [salida a internet desde cp-01](../capturas/04-nodos/m06-02-salida-internet-cp-01.png)

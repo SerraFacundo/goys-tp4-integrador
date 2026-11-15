@@ -54,6 +54,7 @@
 | 2026-11-14 | R24: esqueleto del informe en `documento/informe.md`; redactada la sección "Cambios respecto a la propuesta" | Manuel Rebol |        |
 | 2026-11-15 | N04: manifiestos de resiliencia (`api` con 2 réplicas, topology spread, PDB `minAvailable: 1`; pods solo en workers). Falta la prueba en el cluster | Facundo Serra |        |
 | 2026-11-15 | R09: manifiesto del quick tunnel en `k8s/cloudflared/` y procedimiento de R10 en `docs/08-publicacion.md`. Falta desplegarlo y probarlo desde un celular | Manuel Rebol |        |
+| 2026-11-15 | M06 cerrada: salida a internet verificada desde `cp-01` (`ping` y `curl` OK) después del arreglo de NAT de Martín; docs de la etapa 4 actualizados | Agustín Manrique |        |
 | 2026-11-15 | R14: pod privilegiado rechazado por PSA `restricted` en el namespace `app`; sección en `docs/hardening.md` con capturas | Agustín Manrique |        |
 
 ## 🚧 Pendientes / decisiones
@@ -64,7 +65,7 @@
 - [x] Agregar integrantes y docentes como colaboradores del repo
 - [x] Asignar roles (reparto en Trello; resumen en la tabla de integrantes)
 - [x] Etapas 1–3 de la propuesta (base, red, acceso admin) — ver [`docs/`](docs/README.md)
-- [ ] Etapa 4: plantilla cloud-init y 4 nodos
+- [x] Etapa 4: plantilla cloud-init y 4 nodos
 - [x] Cambios respecto a la propuesta: registrados en [`docs/decisiones.md`](docs/decisiones.md)
 
 ## 📝 Notas
