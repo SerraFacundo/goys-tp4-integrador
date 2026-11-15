@@ -13,7 +13,7 @@
 | Martín Espamer | MartinEspamer | Host Proxmox, acceso Zero Trust, RKE2 y ArgoCD |
 | Agustín Manrique | AgustinManrique | Nodos, repo, backups, matriz de evidencias y póster |
 | Manuel Rebol | ManuelRebol       | Publicación, hardening del cluster e informe final |
-| Baltazar Molteni |                   | Automatización con Ansible, políticas de admisión y videos |
+| Baltazar Molteni | BaltaMolteni      | Automatización con Ansible, políticas de admisión y videos |
 
 ## 🎯 Proyecto
 
@@ -61,6 +61,7 @@
 | 2026-11-15 | N01 completo: cambio visible en la app, CI publica `goys-app:fa923d5` y ArgoCD lo despliega solo. N04: `preStop` en `api`, drain sin cortes y caída dura de un worker (≈47 s con errores hasta `NotReady`); capturas en `capturas/07-app/` | Facundo Serra |        |
 | 2026-11-15 | R22: nmap a la IP pública de la casa desde otra red y sin WARP (65535 TCP y top 50 UDP): ningún puerto abierto, con la app respondiendo por el quick tunnel; capturas en `capturas/08-publicacion/` | Facundo Serra |        |
 | 2026-11-15 | Póster A1 en Typst (`poster/poster.typ` → `poster/poster.pdf`), estilo IEEE; diagrama de arquitectura del estado real en `diagramas/arquitectura.svg` y QR al repo | Facundo Serra |        |
+| 2026-11-15 | N07: `ValidatingAdmissionPolicy` en `k8s/hardening/` (solo `ghcr.io`, sin `:latest`, limits obligatorios) y pods de prueba en `k8s/pruebas/`. Falta la prueba en el cluster | Baltazar Molteni |        |
 
 ## 🚧 Pendientes / decisiones
 
