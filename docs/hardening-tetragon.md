@@ -21,8 +21,9 @@ Cubre la amenaza de *repudio* del [modelo de amenazas](modelo-amenazas.md): algu
 ### La política: [`shell-en-pod`](../k8s/hardening/tetragon/shell-en-pod.yaml)
 
 - **Hook:** `security_bprm_check`, el chequeo de seguridad que el kernel hace antes de cada `exec`. Recibe el binario que se va a ejecutar (`linux_binprm`).
-- **Filtro por binario:** el path termina en `/sh`, `/bash`, `/dash`, `/ash`, `/zsh` o `/busybox`. Es el archivo real: en Alpine `sh` es un link a `busybox`, en Ubuntu a `dash`.
-- **Filtro por namespace:** solo procesos fuera del PID namespace del host, es decir, dentro de un contenedor. Las shells de SSH en los nodos no generan eventos.
+- **Selector 1, arranque de la shell:** el binario que se va a ejecutar termina en `/sh`, `/bash`, `/dash`, `/ash`, `/zsh` o `/busybox` (`dash` y `busybox` por si el path llega resuelto: en Ubuntu `sh` es un link a `dash`, en Alpine a `busybox`). Dispara aunque la shell no ejecute nada, pero el evento sale a nombre de `runc init` y sin pod (ver abajo).
+- **Selector 2, la shell ejecuta un comando:** el proceso que hace el `exec` es una de esas shells. Este evento sí trae el pod, la shell y el comando.
+- **Filtro por namespace (los dos):** solo procesos fuera del PID namespace del host, es decir, dentro de un contenedor. Las shells de SSH en los nodos no generan eventos.
 - **Acción:** solo registra (`Post`). Tetragon también podría matar el proceso (`Sigkill`), pero la respuesta al incidente es parte del simulacro (N06).
 
 De la App X, solo la imagen de `redis` tiene shell; `api` es *distroless*, así que `kubectl exec` con `sh` falla antes de ejecutar nada.
@@ -68,11 +69,28 @@ kubectl -n argocd exec deploy/argocd-repo-server -- sh -c "id"
 
 | Prueba | Resultado | Captura |
 |--------|-----------|---------|
-| Application `tetragon` | Pendiente | — |
-| DaemonSet en los 3 workers, nada en `cp-01` | Pendiente | — |
-| `kubectl get tracingpolicies` | Pendiente | — |
+| Application `tetragon` | `Synced`, `Healthy` | — |
+| DaemonSet en los 3 workers, nada en `cp-01` | `3/3`, un pod `2/2 Running` en cada `wk-01..03`, 0 reinicios | — |
+| `kubectl get tracingpolicies` | `shell-en-pod` | — |
 | Shell en `argocd-repo-server`: evento de `shell-en-pod` con pod, binario y argumentos | Pendiente | — |
 | Shell en `redis` (después de N08) | Pendiente | — |
+
+### Primera prueba: el evento sin pod
+
+Con la primera versión de la política (solo el selector 1), la shell en `argocd-repo-server` disparó, pero así:
+
+```
+❓ syscall wk-01 /var/lib/rancher/rke2/data/v1.36.6-rke2r1-a3be12521274/bin/runc security_bprm_check
+```
+
+`security_bprm_check` corre justo antes del `exec`, cuando el proceso todavía es `runc init` (lo que usa containerd para entrar al contenedor en un `kubectl exec`). `runc` es un binario del host, así que Tetragon no lo asocia a un pod. Los eventos de proceso del mismo momento (`--namespace argocd`, sin filtro de política) sí muestran el pod, porque son procesos que nacen adentro:
+
+```
+🚀 process argocd/argocd-repo-server-75fcf89b6b-h6c46 /usr/bin/sh "-c id"
+🚀 process argocd/argocd-repo-server-75fcf89b6b-h6c46 /usr/bin/id
+```
+
+Por eso se agregó el selector 2: cuando `sh` ejecuta `id`, el que hace el `exec` ya es la shell dentro del pod.
 
 ## Pendiente
 
