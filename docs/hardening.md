@@ -9,7 +9,7 @@ Cada sección es un control de seguridad de la matriz de la propuesta (Tabla 4) 
 | R14 | Pod privilegiado rechazado por Pod Security Admission | Hecha |
 | N08 | Sealed Secrets: ningún secreto en claro en el repo | Hecha |
 | R13 / R15 | NetworkPolicies default-deny y flujo bloqueado en Hubble | Pendiente |
-| N07 | ValidatingAdmissionPolicy | Pendiente |
+| N07 | ValidatingAdmissionPolicy: solo `ghcr.io`, sin `:latest` y con limits | Manifiesto listo; falta la prueba en el cluster |
 | N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha; falta repetirla con `redis` |
 
 ## R14 — Pod privilegiado rechazado
@@ -92,3 +92,49 @@ unset PASS
 Capturas: [antes](../capturas/hardening/n08-01-app-sin-secret.png) · [controller](../capturas/hardening/n08-02-controller-running.png) · [SealedSecret cifrado](../capturas/hardening/n08-03-sealedsecret-cifrado.png) · [después](../capturas/hardening/n08-04-app-running.png)
 
 Pendiente para el administrador: revisar por qué falla el proxy del API server hacia los pods (`502` desde `127.0.0.1:9345`).
+
+## N07 — ValidatingAdmissionPolicy
+
+**Responsable:** Baltazar Molteni · **Fecha:** 15/11/2026
+
+**Listo cuando (N07, #63):** políticas en `k8s/hardening` aplicadas por Argo y un pod que las viola es rechazado, con captura.
+
+PSA (R14) controla **cómo** corre un pod: sin privilegios, sin root. No mira **qué** corre. N07 agrega tres reglas sobre la imagen y los recursos, que el API server revisa antes de crear un pod en el namespace `app`:
+
+| Regla | Por qué |
+|-------|---------|
+| La imagen viene de `ghcr.io/` | Es el registry del grupo: las imágenes pasan por Trivy y se firman con cosign en el CI (N01, N02). Una imagen de otro lado no pasó por ahí |
+| Tag fijo o digest, nunca `:latest` | Con `:latest` no se sabe qué versión corre, y cambia sola en el próximo `pull` |
+| `limits` de CPU y memoria en cada contenedor | Sin límite, un pod con una fuga de memoria deja sin RAM al nodo y a todo lo que corre en él |
+
+Manifiesto: [`k8s/hardening/politicas-admision.yaml`](../k8s/hardening/politicas-admision.yaml). Lo aplica la Application `hardening`.
+
+| Pieza | Elección | Motivo |
+|-------|----------|--------|
+| Mecanismo | `ValidatingAdmissionPolicy` (nativo, reglas en CEL) | Viene en Kubernetes: no suma un controller como Kyverno o Gatekeeper, ni RAM |
+| Alcance | Solo el namespace `app` (`ValidatingAdmissionPolicyBinding` por `kubernetes.io/metadata.name`) | `cloudflared` usa la imagen oficial de Docker Hub, y ArgoCD, Cilium y Tetragon usan las de sus proyectos |
+| Recurso | `Pod`, al crear y al modificar | Todo Deployment o Job termina creando pods. Un Deployment que no cumple se crea, pero sus pods no: el error aparece en los eventos del ReplicaSet |
+| Acción | `Deny`, `failurePolicy: Fail` | Si la regla no se puede evaluar, el pod no entra |
+
+Las dos imágenes de la app (`goys-app:<sha>` y `goys-redis:7.4.12-alpine`) ya cumplen las tres reglas, así que la política no afecta a lo que corre.
+
+### Prueba
+
+Cuatro pods de prueba en [`k8s/pruebas/n07-pods.yaml`](../k8s/pruebas/n07-pods.yaml): uno correcto y uno por cada regla rota. Los cuatro cumplen PSA `restricted`, para que el rechazo venga de N07 y no de R14. Con `--dry-run=server` pasan por toda la admisión pero no se crea nada.
+
+```bash
+kubectl get validatingadmissionpolicy,validatingadmissionpolicybinding
+kubectl apply --dry-run=server -f k8s/pruebas/n07-pods.yaml
+kubectl -n app rollout restart deploy/api && kubectl -n app rollout status deploy/api   # la app sigue entrando
+```
+
+| Prueba | Esperado | Resultado |
+|--------|----------|-----------|
+| Política y binding creados por ArgoCD | `goys-imagenes-y-limits` y `goys-imagenes-y-limits-app` | Pendiente |
+| `n07-ok` | `pod/n07-ok created (server dry run)` | Pendiente |
+| `n07-latest` | Rechazado: `la imagen necesita un tag fijo (no :latest)` | Pendiente |
+| `n07-dockerhub` | Rechazado: `solo se permiten imágenes de ghcr.io` | Pendiente |
+| `n07-sin-limits` | Rechazado: `cada contenedor necesita limits de cpu y memory` | Pendiente |
+| `rollout restart` de `api` | Los pods nuevos entran | Pendiente |
+
+Capturas en `capturas/hardening/`, con prefijo `n07-`.

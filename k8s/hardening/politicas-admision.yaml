@@ -1,0 +1,64 @@
+# N07: ValidatingAdmissionPolicy para los pods del namespace "app".
+# El API server rechaza un pod si alguna de sus imágenes:
+#   1. no viene de ghcr.io (el registry del grupo, con imágenes escaneadas y firmadas en el CI),
+#   2. no tiene tag fijo o usa :latest (no se sabe qué versión corre),
+#   3. o si algún contenedor no declara limits de CPU y memoria (un pod sin límite puede dejar sin RAM al nodo).
+# Se evalúa sobre Pods: todo Deployment, Job, etc. termina creando Pods, y ahí se rechaza.
+# Solo aplica a "app": cloudflared (Docker Hub), ArgoCD y kube-system usan otras imágenes.
+# Doc y prueba: docs/hardening.md#n07--validatingadmissionpolicy
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicy
+metadata:
+  name: goys-imagenes-y-limits
+spec:
+  failurePolicy: Fail
+  matchConstraints:
+    resourceRules:
+      - apiGroups: [""]
+        apiVersions: ["v1"]
+        operations: ["CREATE", "UPDATE"]
+        resources: ["pods"]
+  variables:
+    - name: contenedores
+      expression: >-
+        object.spec.containers +
+        (has(object.spec.initContainers) ? object.spec.initContainers : [])
+  validations:
+    - expression: >-
+        variables.contenedores.all(c, c.image.startsWith('ghcr.io/'))
+      messageExpression: >-
+        'N07: solo se permiten imágenes de ghcr.io. No cumple: ' +
+        variables.contenedores.filter(c, !c.image.startsWith('ghcr.io/')).map(c, c.image).join(', ')
+      reason: Forbidden
+    - expression: >-
+        variables.contenedores.all(c,
+          (c.image.matches('^[^@]+:[^/:@]+(@sha256:[0-9a-f]{64})?$') || c.image.matches('@sha256:[0-9a-f]{64}$'))
+          && !c.image.matches(':latest(@|$)'))
+      messageExpression: >-
+        'N07: la imagen necesita un tag fijo (no :latest) o un digest. No cumple: ' +
+        variables.contenedores.filter(c,
+          !((c.image.matches('^[^@]+:[^/:@]+(@sha256:[0-9a-f]{64})?$') || c.image.matches('@sha256:[0-9a-f]{64}$'))
+            && !c.image.matches(':latest(@|$)'))).map(c, c.image).join(', ')
+      reason: Forbidden
+    - expression: >-
+        variables.contenedores.all(c,
+          has(c.resources) && has(c.resources.limits) &&
+          'cpu' in c.resources.limits && 'memory' in c.resources.limits)
+      messageExpression: >-
+        'N07: cada contenedor necesita limits de cpu y memory. No cumple: ' +
+        variables.contenedores.filter(c,
+          !(has(c.resources) && has(c.resources.limits) &&
+            'cpu' in c.resources.limits && 'memory' in c.resources.limits)).map(c, c.name).join(', ')
+      reason: Forbidden
+---
+apiVersion: admissionregistration.k8s.io/v1
+kind: ValidatingAdmissionPolicyBinding
+metadata:
+  name: goys-imagenes-y-limits-app
+spec:
+  policyName: goys-imagenes-y-limits
+  validationActions: ["Deny"]
+  matchResources:
+    namespaceSelector:
+      matchLabels:
+        kubernetes.io/metadata.name: app
