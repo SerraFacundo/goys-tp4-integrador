@@ -38,7 +38,7 @@
   ansible.builtin.command: >-
     /var/lib/rancher/rke2/bin/kubectl --kubeconfig /etc/rancher/rke2/rke2.yaml
     get node {{ inventory_hostname }}
-    -o jsonpath={.status.conditions[?(@.type=="Ready")].status}
+    -o 'jsonpath={.status.conditions[?(@.type=="Ready")].status}'
   delegate_to: "{{ groups['rke2_servers'][0] }}"
   register: rke2_ready
   until: rke2_ready.stdout == "True"
