@@ -6,6 +6,27 @@
 
 **Listo cuando (M09, #24):** `wk-01`, `wk-02` y `wk-03` registrados en el cluster.
 
+## Reinstalar desde cero (R17)
+
+Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su sección.
+
+| # | Dónde | Paso |
+|---|-------|------|
+| 1 | `cp-01` | [Instalación](#instalación) con versión fija `v1.36.6+rke2r1` y `INSTALL_RKE2_TYPE=server` |
+| 2 | `cp-01` | [Preparación CIS](#preparación-para-el-perfil-cis): usuario `etcd` y sysctl |
+| 3 | `cp-01` | [Configuración](#configuración): `config.yaml`, `audit-policy.yaml` y `rke2-cilium-config.yaml`, **antes** del primer arranque |
+| 4 | `cp-01` | [Arranque](#arranque): `systemctl enable --now rke2-server` y esperar el nodo `Ready` |
+| 5 | notebook | [kubectl desde la notebook](#kubectl-desde-la-notebook) |
+| 6 | workers | [Agents](#agents-en-wk-0103-m09): instalación con `INSTALL_RKE2_TYPE=agent`, sysctl CIS, `config.yaml` y [token](#token) por pipe SSH. Arrancar `wk-01` primero |
+| 7 | notebook | [Verificación del cluster](#verificación-del-cluster-m10) |
+| 8 | notebook | `kubectl apply -f k8s/cilium/hubble-ui-policy.yaml` ([Hubble](#hubble-m11)) |
+| 9 | notebook | CRDs de Gateway API, reinicio de operator y agentes, y `k8s/gateway-api/gateway.yaml` ([Gateway API](#gateway-api-m13)) |
+| 10 | notebook | `kubectl apply -f k8s/rbac/integrantes.yaml` y certificados nuevos ([Acceso por integrante](#acceso-por-integrante-m14)) |
+
+En una reinstalación, Hubble y Gateway API ya van en el `HelmChartConfig` del paso 3. Los CRDs de Gateway API tienen que estar antes de que arranque el operator; si no, Cilium desactiva el soporte y hay que reiniciar el operator después de aplicarlos (paso 9). Una CA nueva invalida los kubeconfig anteriores: hay que generar certificados nuevos para cada integrante.
+
+Valores que no se publican: el `node-token` de `cp-01` (`token: <token>` en el `config.yaml` de los agents) y los kubeconfig.
+
 ## Diseño
 
 | Pieza | Elección | Motivo |
@@ -261,7 +282,7 @@ systemctl restart systemd-sysctl
 server: https://10.10.10.11:9345
 profile: cis
 node-ip: 10.10.10.21   # .22 y .23 en wk-02 y wk-03
-token: <node-token de cp-01>
+token: <token>   # node-token de cp-01, ver Token
 ```
 
 Audit, cifrado, `tls-san` y Cilium no van en el agent: son del control plane, y el server despliega Cilium en cada nodo como DaemonSet.
