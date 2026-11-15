@@ -1,0 +1,20 @@
+# M18: permisos de los usuarios de ArgoCD.
+# - martin: role:admin (repos, proyectos, cuentas y config de ArgoCD).
+# - el resto: role:operador = ver todo + sync, rollback, pausar el auto-sync
+#   (update) y acciones sobre recursos. No pueden borrar Applications ni tocar
+#   repos, proyectos o cuentas.
+# - cualquier otro usuario autenticado: solo lectura.
+# Se aplica con: kubectl -n argocd patch cm argocd-rbac-cm --type merge --patch-file <este archivo>
+data:
+  policy.default: role:readonly
+  policy.csv: |
+    p, role:operador, applications, sync, */*, allow
+    p, role:operador, applications, update, */*, allow
+    p, role:operador, applications, action/*, */*, allow
+    p, role:operador, logs, get, */*, allow
+    g, role:operador, role:readonly
+    g, martin, role:admin
+    g, facundo, role:operador
+    g, agustin, role:operador
+    g, manuel, role:operador
+    g, baltazar, role:operador
