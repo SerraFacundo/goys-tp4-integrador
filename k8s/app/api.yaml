@@ -68,6 +68,12 @@ spec:
             limits:
               cpu: 200m
               memory: 64Mi
+          # N04: al desalojar, el pod sigue atendiendo 5 s mientras sale de los endpoints.
+          # Sin esto, Envoy le mandaba un pedido más y el loop daba un 503 en el drain.
+          lifecycle:
+            preStop:
+              sleep:
+                seconds: 5
           readinessProbe:
             httpGet:
               path: /healthz
