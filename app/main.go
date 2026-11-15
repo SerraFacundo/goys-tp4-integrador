@@ -34,6 +34,7 @@ var page = template.Must(template.New("page").Parse(`<!doctype html>
 </form>
 <h2>Últimos mensajes</h2>
 <ul>{{range .}}<li>{{.}}</li>{{else}}<li>Todavía no hay mensajes.</li>{{end}}</ul>
+<footer><small>Grupo 12 · GOYS · UTN FRLP</small></footer>
 </body>
 </html>`))
 
