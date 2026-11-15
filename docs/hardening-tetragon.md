@@ -10,7 +10,7 @@ Cubre la amenaza de *repudio* del [modelo de amenazas](modelo-amenazas.md): algu
 
 | Pieza | Elección | Motivo |
 |-------|----------|--------|
-| Instalación | Chart `tetragon` `1.8.0` de `helm.cilium.io`, por una Application de ArgoCD | Nadie aplica a mano desde M20; versión fija como el resto |
+| Instalación | Chart oficial `tetragon` `1.8.0`, copiado sin cambios en [`k8s/hardening/tetragon/chart/`](../k8s/hardening/tetragon/chart/), por una Application de ArgoCD | Nadie aplica a mano desde M20. Bajarlo de `helm.cilium.io` no anduvo (ver abajo) |
 | Application | [`k8s/argocd/apps/tetragon.yaml`](../k8s/argocd/apps/tetragon.yaml), con dos fuentes: el chart y [`k8s/hardening/tetragon/`](../k8s/hardening/tetragon/) | La Application `hardening` no lee subcarpetas. Así las TracingPolicies se aplican en el mismo sync que sus CRDs |
 | Namespace | `kube-system` | El agente necesita capabilities del host (`SYS_ADMIN` para cargar programas eBPF, etc.). Es el único namespace exento de PSA `restricted` en el perfil CIS |
 | CRDs | Las instala Helm (`crds.installMethod: helm`), no el operador | Tienen que existir antes que la TracingPolicy. Pesan ~520 KB: van con `ServerSideApply` |
@@ -26,6 +26,17 @@ Cubre la amenaza de *repudio* del [modelo de amenazas](modelo-amenazas.md): algu
 - **Acción:** solo registra (`Post`). Tetragon también podría matar el proceso (`Sigkill`), pero la respuesta al incidente es parte del simulacro (N06).
 
 De la App X, solo la imagen de `redis` tiene shell; `api` es *distroless*, así que `kubectl exec` con `sh` falla antes de ejecutar nada.
+
+### Por qué el chart está copiado en el repo
+
+La primera versión bajaba el chart de `helm.cilium.io`. La Application quedó en `Unknown` con `context deadline exceeded`, y el log del repo-server mostró `helm pull ... --repo https://helm.cilium.io tetragon` failed timeout after 1m30s. Probado a mano desde el mismo pod:
+
+```bash
+kubectl -n argocd exec deploy/argocd-repo-server -- sh -c "HOME=/tmp timeout 150 helm pull tetragon --repo https://helm.cilium.io --version 1.8.0 -d /tmp/n05 --debug"
+# Get "https://helm.cilium.io/index.yaml": context deadline exceeded (Client.Timeout exceeded while awaiting headers)
+```
+
+Helm primero baja el `index.yaml` del repo entero (todas las versiones de Cilium, Tetragon y Hubble) y desde el cluster no llegó a recibir respuesta en 2 minutos. GitHub sí anda, así que el chart se copió de [`cilium/tetragon` en el tag `v1.8.0`](https://github.com/cilium/tetragon/tree/v1.8.0/install/kubernetes/tetragon) (`Chart.yaml`, `values.yaml`, `templates/`, `crds-yaml/` y la licencia Apache 2.0) y ArgoCD lo renderiza desde este repo. Para actualizarlo hay que volver a copiar esa carpeta desde el tag nuevo.
 
 ## Despliegue
 

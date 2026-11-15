@@ -1,7 +1,10 @@
 # N05: Tetragon (detección en runtime con eBPF). Ver docs/hardening-tetragon.md.
-# - Dos fuentes: el chart oficial (helm.cilium.io, versión fija) y las TracingPolicies
-#   del grupo en k8s/hardening/tetragon/. La Application "hardening" no lee subcarpetas,
-#   así que esas políticas solo las aplica esta Application, en el mismo sync que las CRDs.
+# - Dos fuentes, las dos de este repo: el chart oficial 1.8.0 copiado en
+#   k8s/hardening/tetragon/chart/ y las TracingPolicies del grupo en k8s/hardening/tetragon/.
+#   El chart no se baja de helm.cilium.io: desde el cluster no responde a tiempo y el
+#   repo-server corta a los 90 s (ver docs/hardening-tetragon.md).
+# - La Application "hardening" no lee subcarpetas, así que el chart y las políticas solo
+#   los aplica esta Application, en el mismo sync que las CRDs.
 # - Va en kube-system: el agente necesita capabilities del host y PSA restricted lo
 #   rechazaría en cualquier otro namespace (kube-system es el único exento, perfil CIS).
 # - CRDs por Helm (no por el operador) para que existan antes que las TracingPolicies.
@@ -20,9 +23,9 @@ metadata:
 spec:
   project: default
   sources:
-    - repoURL: https://helm.cilium.io
-      chart: tetragon
-      targetRevision: 1.8.0
+    - repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+      targetRevision: main
+      path: k8s/hardening/tetragon/chart
       helm:
         releaseName: tetragon
         valuesObject:
