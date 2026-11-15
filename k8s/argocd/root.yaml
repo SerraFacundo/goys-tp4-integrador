@@ -1,0 +1,23 @@
+# M20: app-of-apps. Lee k8s/argocd/apps y crea ahí las Applications del grupo.
+# Es lo único que se aplica a mano (una vez, junto con la instalación de ArgoCD);
+# desde acá las Applications quedan versionadas y las aplica ArgoCD.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: root
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+    targetRevision: main
+    path: k8s/argocd/apps
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: argocd
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true

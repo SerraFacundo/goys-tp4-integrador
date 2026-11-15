@@ -1,0 +1,31 @@
+# M20: k8s/app (App X de R07). Wave 1, después de hardening.
+# Sin CreateNamespace: el Namespace "app" lo define R12 en k8s/hardening
+# y no puede estar en dos Applications.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: app
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+  annotations:
+    argocd.argoproj.io/sync-wave: "1"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+    targetRevision: main
+    path: k8s/app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: app
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m

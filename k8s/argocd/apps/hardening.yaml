@@ -1,0 +1,30 @@
+# M20: k8s/hardening (Namespace "app" con PSA restricted de R12, y lo que suban
+# N05, N07 y N08). Wave 0: tiene que existir antes que la Application "app".
+# Sin finalizer: borrar la Application no borra el Namespace ni lo que contiene.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: hardening
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+    targetRevision: main
+    path: k8s/hardening
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    retry:
+      limit: 5
+      backoff:
+        duration: 10s
+        factor: 2
+        maxDuration: 3m
