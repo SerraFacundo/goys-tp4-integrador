@@ -14,6 +14,8 @@
 
 **Listo cuando (M20, #35):** las Applications `hardening`, `app` y `cloudflared` aparecen en la UI de ArgoCD.
 
+**Listo cuando (M21, #37):** un cambio manual pasa a `OutOfSync` y ArgoCD lo revierte solo.
+
 ## Reinstalar desde cero (R17)
 
 Orden para rehacer el cluster (base del playbook de R17). Cada paso remite a su sección.
@@ -765,3 +767,39 @@ argocd/root         argocd       Synced  Progressing  k8s/argocd/apps
 | Orden de las waves | `hardening` sincronizó a las 01:57:30 y `app` se creó a las 01:57:31 |
 | `kubectl get ns app --show-labels` | Namespace creado por ArgoCD con las labels PSA `restricted` de R12 |
 | `kubectl get pods -n app` | `api` (2) y `redis` en `CreateContainerConfigError`: falta el Secret `redis-auth` (N08). Por eso `app` y `root` quedan `Progressing` |
+
+## Prueba de drift (M21)
+
+Cambio manual en el cluster: `api` a 5 réplicas, cuando git dice 2. ArgoCD tiene que detectarlo (`OutOfSync`) y `selfHeal` tiene que revertirlo (`Synced`).
+
+El estado `OutOfSync` dura menos de 2 segundos, así que no se ve consultando con `argocd app get` cada segundo. Se siguió con un watch de la Application, que imprime cada cambio de estado en el momento, con la hora en milisegundos:
+
+```bash
+kubectl -n argocd get application app -w -o jsonpath='{.status.sync.status}{"\n"}' \
+  | while read s; do echo "$(date +%T.%3N)  $s"; done &
+sleep 2; echo "$(date +%T.%3N)  >>> scale a 5"; kubectl -n app scale deploy api --replicas=5
+sleep 10; kill %1
+echo "$(date +%T)  replicas=$(kubectl -n app get deploy api -o jsonpath='{.spec.replicas}')"
+kubectl -n argocd get events --field-selector involvedObject.name=app --sort-by=.lastTimestamp | tail -4
+```
+
+| Hora (15/11/2026) | Estado | Qué pasó |
+|-------------------|--------|----------|
+| 02:03:21.546 | `Synced` | 2 réplicas, igual que git |
+| 02:03:23.409 | — | `kubectl scale deploy api --replicas=5` |
+| 02:03:24.847 | `OutOfSync` | ArgoCD detecta la diferencia |
+| 02:03:26.319 | `Synced` | `selfHeal` lo revierte, unos 3 s después del cambio |
+| 02:03:33 | `replicas=2` | El Deployment volvió a lo que dice git |
+
+Los events de la Application muestran que lo hizo ArgoCD, sin intervención:
+
+```
+Normal   OperationStarted     application/app   Initiated automated sync to '5acfe14179c9a74553379bacd7f878c89412fbff'
+Normal   ResourceUpdated      application/app   Updated sync status: Synced -> OutOfSync
+Normal   ResourceUpdated      application/app   Updated sync status: OutOfSync -> Synced
+Normal   OperationCompleted   application/app   Partial sync operation to 5acfe14179c9a74553379bacd7f878c89412fbff succeeded
+```
+
+`Partial` porque solo reaplicó el recurso que cambió (el Deployment `api`). `argocd app history` no suma una línea: el historial cuenta syncs a commits nuevos, y `selfHeal` reaplica el mismo.
+
+Captura con la salida completa: [`m21-1-drift-terminal.png`](../capturas/05-cluster/m21-1-drift-terminal.png).
