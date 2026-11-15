@@ -13,7 +13,7 @@
 | Martín Espamer | MartinEspamer | Host Proxmox, acceso Zero Trust, RKE2 y ArgoCD |
 | Agustín Manrique | AgustinManrique | Nodos, repo, backups, matriz de evidencias y póster |
 | Manuel Rebol | ManuelRebol       | Publicación, hardening del cluster e informe final |
-| Baltazar Molteni |                   | Automatización con Ansible, políticas de admisión y videos |
+| Baltazar Molteni | BaltaMolteni      | Automatización con Ansible, políticas de admisión y videos |
 
 ## 🎯 Proyecto
 
@@ -62,6 +62,7 @@
 | 2026-11-15 | R22: nmap a la IP pública de la casa desde otra red y sin WARP (65535 TCP y top 50 UDP): ningún puerto abierto, con la app respondiendo por el quick tunnel; capturas en `capturas/08-publicacion/` | Facundo Serra |        |
 | 2026-11-15 | Póster A1 en Typst (`poster/poster.typ` → `poster/poster.pdf`), estilo IEEE; diagrama de arquitectura del estado real en `diagramas/arquitectura.svg` y QR al repo | Facundo Serra |        |
 | 2026-11-15 | P02, R16 y R17: playbooks `preparar-nodos.yml`, `instalar-rke2.yml` y `cluster.yml` en `ansible/`; doc en `docs/09-ansible.md`. P02 y R16 aplicados en los 4 nodos (`Hardening OK`) y R17 comparado con el cluster con `--check --diff` (sin diferencias de fondo); R18: `wk-03` borrado y recreado desde la plantilla, `Ready` solo con `cluster.yml` (≈10 min); capturas en `capturas/09-ansible/` | Baltazar Molteni |        |
+| 2026-11-15 | N07: `ValidatingAdmissionPolicy` en `k8s/hardening/` (solo `ghcr.io`, sin `:latest`, limits obligatorios) y pods de prueba en `k8s/pruebas/`. Falta la prueba en el cluster | Baltazar Molteni |        |
 
 ## 🚧 Pendientes / decisiones
 
