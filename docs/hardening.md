@@ -43,11 +43,24 @@ Las reglas salen de lo que Hubble vio en el cluster, sin políticas, mientras se
 | Envoy → `api:8080`, mismo nodo y nodo distinto | Origen `ingress` en los dos casos (VXLAN lleva la identidad) | `fromEntities: ingress` |
 | `api` → `redis:6379` | Pod a pod | `fromEndpoints` / `toEndpoints` por `app.kubernetes.io/name` |
 | `api`, `cloudflared` → CoreDNS `:53` | Pods `k8s-app=kube-dns` en `kube-system` | `toEndpoints` con esas etiquetas |
-| `cloudflared` → Service del Gateway `:8000` | Destino `world`: el Service apunta a `127.0.0.1:8000`, el Envoy del propio nodo | `toEntities: world`, puerto `8000` |
+| `cloudflared` → Service del Gateway `:8000` | Destino `world`: el Service apunta a `127.0.0.1:8000`, el Envoy del propio nodo. Envoy además revisa la salida hacia `ingress` (ver abajo) | `toEntities: world, ingress`, puerto `8000` |
 | `cloudflared` → Cloudflare `:7844/UDP` | `world` | `toEntities: world`, puertos `443` y `7844` |
 | Kubelet → probes de `api` y `cloudflared` | `host` | Ninguna: Cilium deja pasar siempre el tráfico del propio nodo |
 
 `redis` no abrió ninguna conexión, así que no tiene reglas de salida.
+
+### Primer intento: 403 en el Gateway
+
+Con la primera versión (PR #141), la regla de cloudflared al Gateway solo tenía `world`. El quick tunnel respondía `403` a todo, y en Hubble no aparecía ningún pedido de Envoy hacia `api`: el pedido se cortaba en el Gateway. La conexión pasa dos controles. El eBPF ve el destino como `world` y la deja abrir. Después Envoy revisa si cloudflared puede salir hacia la identidad `ingress` y, como no estaba permitido, contesta `403` en lugar de reenviar el pedido. Se agregó `ingress` a la regla.
+
+Lo que mostró Hubble en el nodo de cloudflared, con dos pedidos por el quick tunnel (URL tapada):
+
+```text
+cloudflared/cloudflared-79f8488569-vh6hb:49074 (ingress) -> gateway/cilium-gateway-goys-gateway:8000 (world) http-request DROPPED (HTTP/1.1 GET http://<url>.trycloudflare.com/)
+cloudflared/cloudflared-79f8488569-vh6hb:49074 (ingress) <- gateway/cilium-gateway-goys-gateway:8000 (world) http-response FORWARDED (HTTP/1.1 403 0ms (GET http://<url>.trycloudflare.com/))
+```
+
+El pedido se descarta en el nivel HTTP (`http-request DROPPED`) y la respuesta `403` sale en `0ms`: la arma Envoy sin consultar a `api`.
 
 ### Prueba
 
