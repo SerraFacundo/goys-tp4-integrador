@@ -1,0 +1,60 @@
+# R13: NetworkPolicies del namespace "cloudflared". Ver docs/08-publicacion.md.
+# cloudflared no recibe conexiones: el túnel es solo saliente. Las probes del
+# kubelet (puerto 2000) salen del propio nodo y Cilium las deja pasar siempre.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: cloudflared
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: cloudflared
+  namespace: cloudflared
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: cloudflared
+  egress:
+    # DNS del cluster: resuelve el Service del Gateway y los nombres de Cloudflare.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+    # Origen del túnel: el Service del Gateway en el puerto 8000. Con el Gateway
+    # en host network el Service apunta a 127.0.0.1:8000 (el Envoy del propio nodo)
+    # y Hubble ve el destino con identidad "world" (observado el 16/11, R13).
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "8000"
+              protocol: TCP
+    # Red de Cloudflare: 443 para pedir el quick tunnel y 7844 para las
+    # conexiones del túnel (QUIC por UDP, HTTP/2 por TCP si UDP no sale).
+    - toEntities:
+        - world
+      toPorts:
+        - ports:
+            - port: "443"
+              protocol: TCP
+            - port: "7844"
+              protocol: TCP
+            - port: "7844"
+              protocol: UDP

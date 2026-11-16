@@ -106,8 +106,20 @@ La IP es pública (Telmex/Claro), sin CGNAT, así que el escaneo llega al router
 
 `-sS` necesita root; sin `sudo` nmap hace conexiones TCP completas y con todo filtrado tarda horas. En UDP, `open|filtered` sin respuesta es lo esperable cuando el router descarta los paquetes: no hay ningún servicio que conteste.
 
+## NetworkPolicies (R13)
+
+El namespace `cloudflared` tiene default-deny ([`k8s/cloudflared/networkpolicies.yaml`](../k8s/cloudflared/networkpolicies.yaml)). No recibe conexiones y solo puede salir a:
+
+| Destino | Puerto | Para qué |
+|---------|--------|----------|
+| DNS del cluster (CoreDNS) | `53/UDP` y `53/TCP` | Resolver el Service del Gateway y los nombres de Cloudflare |
+| Service del Gateway | `8000/TCP` | Origen del túnel |
+| Internet (`world`) | `443/TCP` | Pedir el quick tunnel a `api.trycloudflare.com` |
+| Internet (`world`) | `7844/UDP` y `7844/TCP` | Conexiones del túnel (QUIC, o HTTP/2 si UDP no sale) |
+
+La regla del Gateway usa `world` y no `ingress`: con el Gateway en host network el Service apunta a `127.0.0.1:8000` (el Envoy del propio nodo), y Hubble muestra ese destino como `world`. Detalle en [hardening.md](hardening.md#r13--networkpolicies-default-deny).
+
 ## Pendiente
 
-- **NetworkPolicies (R13):** con default-deny en `cloudflared` hay que permitir la salida a DNS, al Gateway (`8000/TCP`) y a Cloudflare (`7844` TCP y UDP, `443/TCP` para registrar el quick tunnel).
 - **Políticas de admisión (N07):** si se exige que las imágenes vengan de `ghcr.io`, `cloudflare/cloudflared` (Docker Hub) queda afuera. Opciones: exceptuar el namespace `cloudflared` o copiar la imagen a GHCR.
 - **Runbook de URL nueva (R11).**
