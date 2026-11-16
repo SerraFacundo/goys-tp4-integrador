@@ -9,7 +9,7 @@ Cada sección es un control de seguridad de la matriz de la propuesta (Tabla 4) 
 | R14 | Pod privilegiado rechazado por Pod Security Admission | Hecha |
 | N08 | Sealed Secrets: ningún secreto en claro en el repo | Hecha |
 | R13 / R15 | NetworkPolicies default-deny y flujo bloqueado en Hubble | Pendiente |
-| N07 | ValidatingAdmissionPolicy: solo `ghcr.io`, sin `:latest` y con limits | Manifiesto listo; falta la prueba en el cluster |
+| N07 | ValidatingAdmissionPolicy: solo `ghcr.io`, sin `:latest` y con limits | Hecha |
 | N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha; falta repetirla con `redis` |
 
 ## R14 — Pod privilegiado rechazado
@@ -130,11 +130,13 @@ kubectl -n app rollout restart deploy/api && kubectl -n app rollout status deplo
 
 | Prueba | Esperado | Resultado |
 |--------|----------|-----------|
-| Política y binding creados por ArgoCD | `goys-imagenes-y-limits` y `goys-imagenes-y-limits-app` | Pendiente |
-| `n07-ok` | `pod/n07-ok created (server dry run)` | Pendiente |
-| `n07-latest` | Rechazado: `la imagen necesita un tag fijo (no :latest)` | Pendiente |
-| `n07-dockerhub` | Rechazado: `solo se permiten imágenes de ghcr.io` | Pendiente |
-| `n07-sin-limits` | Rechazado: `cada contenedor necesita limits de cpu y memory` | Pendiente |
-| `rollout restart` de `api` | Los pods nuevos entran | Pendiente |
+| Política y binding creados por ArgoCD | `goys-imagenes-y-limits` y `goys-imagenes-y-limits-app` | OK: los dos aparecen, la política con 3 validaciones. Application `hardening` en `Synced/Healthy` |
+| `n07-ok` | `pod/n07-ok created (server dry run)` | OK: aceptado |
+| `n07-latest` | Rechazado: `la imagen necesita un tag fijo (no :latest)` | OK: `Forbidden`, no cumple `ghcr.io/serrafacundo/goys-app:latest` |
+| `n07-dockerhub` | Rechazado: `solo se permiten imágenes de ghcr.io` | OK: `Forbidden`, no cumple `docker.io/library/nginx:1.27.5` |
+| `n07-sin-limits` | Rechazado: `cada contenedor necesita limits de cpu y memory` | OK: `Forbidden`, no cumple el contenedor `app` |
+| `rollout restart` de `api` | Los pods nuevos entran | OK: `successfully rolled out`, 2 pods `api` nuevos en `Running` y `redis` sin cambios |
 
-Capturas en `capturas/hardening/`, con prefijo `n07-`.
+Los tres rechazos nombran la política y el binding (`ValidatingAdmissionPolicy 'goys-imagenes-y-limits' with binding 'goys-imagenes-y-limits-app'`), así que vienen de N07 y no de PSA.
+
+Capturas: [política y binding](../capturas/hardening/n07-01-politica.png) · [rechazos](../capturas/hardening/n07-02-rechazos.png) · [la app sigue entrando](../capturas/hardening/n07-03-app-sigue.png)
