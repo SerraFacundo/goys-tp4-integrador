@@ -11,7 +11,7 @@ Cada sección es un control de seguridad de la matriz de la propuesta (Tabla 4) 
 | R13 | NetworkPolicies default-deny y solo los flujos necesarios | Hecha |
 | R15 | Flujo bloqueado visible en Hubble | Hecha |
 | N07 | ValidatingAdmissionPolicy: solo `ghcr.io`, sin `:latest` y con limits | Hecha |
-| N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha; falta repetirla con `redis` |
+| N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha, también con `redis` |
 
 ## R13 — NetworkPolicies default-deny
 
