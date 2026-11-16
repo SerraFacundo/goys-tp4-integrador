@@ -104,7 +104,7 @@ Hay cuatro fronteras: **internet → Cloudflare**, **Cloudflare → red del lab*
 1. Cloudflare termina TLS: el lab no tiene datos sensibles.
 2. Un solo host físico y un solo HDD: no hay alta disponibilidad real; se compensa con backups (N03).
 3. Dependencia de Cloudflare: si cae, solo queda el acceso desde la LAN de la casa.
-4. URL del quick tunnel cambia al reiniciar el pod: se documenta en el runbook R11.
+4. URL del quick tunnel cambia al reiniciar el pod: se documenta en el [runbook R11](runbook-quick-tunnel.md).
 
 ## Cómo se conecta con la demo
 
