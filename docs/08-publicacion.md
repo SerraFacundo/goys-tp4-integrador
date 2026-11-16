@@ -114,10 +114,11 @@ El namespace `cloudflared` tiene default-deny ([`k8s/cloudflared/networkpolicies
 |---------|--------|----------|
 | DNS del cluster (CoreDNS) | `53/UDP` y `53/TCP` | Resolver el Service del Gateway y los nombres de Cloudflare |
 | Service del Gateway (`world` e `ingress`) | `8000/TCP` | Origen del túnel |
+| `api` (namespace `app`) | `8080/TCP` | No es una conexión directa: Envoy revisa esta regla antes de pasarle el pedido a `api` |
 | Internet (`world`) | `443/TCP` | Pedir el quick tunnel a `api.trycloudflare.com` |
 | Internet (`world`) | `7844/UDP` y `7844/TCP` | Conexiones del túnel (QUIC, o HTTP/2 si UDP no sale) |
 
-La regla del Gateway necesita dos entidades: `world`, porque con el Gateway en host network el Service apunta a `127.0.0.1:8000` (el Envoy del propio nodo) y el eBPF ve ese destino como `world`; e `ingress`, porque Envoy vuelve a revisar la salida de cloudflared hacia esa identidad y sin ella responde `403`. Detalle en [hardening.md](hardening.md#r13--networkpolicies-default-deny).
+La regla del Gateway usa `world` porque con el Gateway en host network el Service apunta a `127.0.0.1:8000` (el Envoy del propio nodo) y el eBPF ve ese destino como `world`. Además, Envoy aplica la política de salida de cloudflared contra el backend de la ruta (`api:8080`): sin esa regla responde `403`. `ingress` quedó de un intento anterior y no se probó si hace falta. Detalle en [hardening.md](hardening.md#tres-intentos-403-en-el-gateway).
 
 ## Pendiente
 

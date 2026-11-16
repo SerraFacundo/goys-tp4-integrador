@@ -8,7 +8,7 @@ Cada sección es un control de seguridad de la matriz de la propuesta (Tabla 4) 
 |-------|---------|--------|
 | R14 | Pod privilegiado rechazado por Pod Security Admission | Hecha |
 | N08 | Sealed Secrets: ningún secreto en claro en el repo | Hecha |
-| R13 | NetworkPolicies default-deny y solo los flujos necesarios | En prueba |
+| R13 | NetworkPolicies default-deny y solo los flujos necesarios | Hecha |
 | R15 | Flujo bloqueado visible en Hubble | Pendiente (depende de R13) |
 | N07 | ValidatingAdmissionPolicy: solo `ghcr.io`, sin `:latest` y con limits | Hecha |
 | N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha; falta repetirla con `redis` |
@@ -28,7 +28,7 @@ Manifiestos: [`k8s/app/networkpolicies.yaml`](../k8s/app/networkpolicies.yaml) y
 | `app`, `cloudflared` | `default-deny` (`NetworkPolicy` estándar) | Selecciona todos los pods y corta la entrada y la salida |
 | `app` | `api` (`CiliumNetworkPolicy`) | Entrada solo desde el Gateway al `8080`. Salida a `redis:6379` y al DNS |
 | `app` | `redis` (`CiliumNetworkPolicy`) | Entrada solo desde `api` al `6379`. Sin salida |
-| `cloudflared` | `cloudflared` (`CiliumNetworkPolicy`) | Sin entrada. Salida al DNS, al Gateway (`8000`) y a Cloudflare (`443`, `7844`) |
+| `cloudflared` | `cloudflared` (`CiliumNetworkPolicy`) | Sin entrada. Salida al DNS, al Gateway (`8000`), a `api:8080` (la revisa Envoy, ver abajo) y a Cloudflare (`443`, `7844`) |
 
 ### Por qué `CiliumNetworkPolicy`
 
@@ -43,24 +43,32 @@ Las reglas salen de lo que Hubble vio en el cluster, sin políticas, mientras se
 | Envoy → `api:8080`, mismo nodo y nodo distinto | Origen `ingress` en los dos casos (VXLAN lleva la identidad) | `fromEntities: ingress` |
 | `api` → `redis:6379` | Pod a pod | `fromEndpoints` / `toEndpoints` por `app.kubernetes.io/name` |
 | `api`, `cloudflared` → CoreDNS `:53` | Pods `k8s-app=kube-dns` en `kube-system` | `toEndpoints` con esas etiquetas |
-| `cloudflared` → Service del Gateway `:8000` | Destino `world`: el Service apunta a `127.0.0.1:8000`, el Envoy del propio nodo. Envoy además revisa la salida hacia `ingress` (ver abajo) | `toEntities: world, ingress`, puerto `8000` |
+| `cloudflared` → Service del Gateway `:8000` | Destino `world`: el Service apunta a `127.0.0.1:8000`, el Envoy del propio nodo | `toEntities: world` (más `ingress`, ver abajo), puerto `8000` |
 | `cloudflared` → Cloudflare `:7844/UDP` | `world` | `toEntities: world`, puertos `443` y `7844` |
 | Kubelet → probes de `api` y `cloudflared` | `host` | Ninguna: Cilium deja pasar siempre el tráfico del propio nodo |
 
 `redis` no abrió ninguna conexión, así que no tiene reglas de salida.
 
-### Primer intento: 403 en el Gateway
+### Tres intentos: 403 en el Gateway
 
-Con la primera versión (PR #141), la regla de cloudflared al Gateway solo tenía `world`. El quick tunnel respondía `403` a todo, y en Hubble no aparecía ningún pedido de Envoy hacia `api`: el pedido se cortaba en el Gateway. La conexión pasa dos controles. El eBPF ve el destino como `world` y la deja abrir. Después Envoy revisa si cloudflared puede salir hacia la identidad `ingress` y, como no estaba permitido, contesta `403` en lugar de reenviar el pedido. Se agregó `ingress` a la regla.
+Las reglas de `app` funcionaron desde el primer PR. La de `cloudflared` necesitó tres:
 
-Lo que mostró Hubble en el nodo de cloudflared, con dos pedidos por el quick tunnel (URL tapada):
+| PR | Regla de cloudflared hacia el Gateway | Resultado |
+|----|---------------------------------------|-----------|
+| #141 | `world`, puerto `8000` | `403` en todos los pedidos |
+| #142 | `world` e `ingress`, puerto `8000` | Sigue `403` |
+| #143 | Lo anterior más `api:8080` (`toEndpoints` del namespace `app`) | `200` |
+
+Con el `403`, Hubble mostraba el pedido descartado en el nivel HTTP, en el Envoy del Gateway (URL tapada):
 
 ```text
 cloudflared/cloudflared-79f8488569-vh6hb:49074 (ingress) -> gateway/cilium-gateway-goys-gateway:8000 (world) http-request DROPPED (HTTP/1.1 GET http://<url>.trycloudflare.com/)
 cloudflared/cloudflared-79f8488569-vh6hb:49074 (ingress) <- gateway/cilium-gateway-goys-gateway:8000 (world) http-response FORWARDED (HTTP/1.1 403 0ms (GET http://<url>.trycloudflare.com/))
 ```
 
-El pedido se descarta en el nivel HTTP (`http-request DROPPED`) y la respuesta `403` sale en `0ms`: la arma Envoy sin consultar a `api`.
+El `403` sale en `0ms` y no aparece ningún pedido hacia `api`: lo arma Envoy antes de elegir el backend. La causa es el arreglo de Cilium para [CVE-2025-30162](https://github.com/cilium/cilium/security/advisories/GHSA-24qp-4xx8-3jvj) (desde 1.17.2; el cluster tiene 1.20.4). Antes, un pod podía saltear su propia política de salida mandando el pedido a través del Gateway. Ahora Envoy aplica la política de salida del pod que hace el pedido ([cilium/proxy#1172](https://github.com/cilium/proxy/pull/1172)), y por lo observado la evalúa contra el backend de la ruta: para Envoy, cloudflared le está pidiendo algo a `api:8080`. Sin esa regla de salida, `403`.
+
+La regla `toEndpoints` hacia `api:8080` no le permite a cloudflared conectarse directo con `api`: la política de entrada de `api` solo acepta la identidad `ingress`, así que una conexión directa desde cloudflared se descarta igual. `ingress` en el puerto `8000` quedó del segundo intento; no se probó si hace falta, para no cortar la app otra vez el día antes de la Feria.
 
 ### Prueba
 
@@ -75,21 +83,42 @@ $url = ((kubectl -n cloudflared logs deploy/cloudflared | Select-String -Pattern
 curl.exe -s -o NUL -w "GET  %{http_code}`n" "$url/"
 curl.exe -s -o NUL -w "POST %{http_code}`n" -X POST --data-urlencode "texto=Prueba R13" "$url/mensajes"
 curl.exe -s "$url/" | Select-String "Prueba R13"
-$nodo = kubectl -n app get pod -l app.kubernetes.io/name=redis -o jsonpath='{.items[0].spec.nodeName}'
-$agente = kubectl -n kube-system get pod -l k8s-app=cilium --field-selector spec.nodeName=$nodo -o jsonpath='{.items[0].metadata.name}'
-kubectl -n kube-system exec $agente -c cilium-agent -- hubble observe --namespace app --type policy-verdict --last 30 -o compact
+$nodoCf = kubectl -n cloudflared get pod -l app.kubernetes.io/name=cloudflared -o jsonpath='{.items[0].spec.nodeName}'
+$agenteCf = kubectl -n kube-system get pod -l k8s-app=cilium --field-selector spec.nodeName=$nodoCf -o jsonpath='{.items[0].metadata.name}'
+kubectl -n kube-system exec $agenteCf -c cilium-agent -- hubble observe --namespace cloudflared --type l7 --last 4 -o compact
+kubectl -n kube-system exec $agenteCf -c cilium-agent -- hubble observe --namespace app --type policy-verdict --not --from-identity 1 --last 10 -o compact
 $apiIp = kubectl -n app get svc api -o jsonpath='{.spec.clusterIP}'
 kubectl -n app exec deploy/redis -- sh -c "nc -w 3 $apiIp 8080 </dev/null; echo salida=`$?"
+kubectl -n kube-system exec $agenteCf -c cilium-agent -- hubble observe --namespace app --verdict DROPPED --last 5 -o compact
 ```
+
+`--not --from-identity 1` saca de la salida las probes del kubelet (identidad `host`). En el momento de la prueba `cloudflared`, `redis` y una réplica de `api` estaban en `wk-01`, así que un solo agente de Cilium ve todos los flujos.
 
 | Prueba | Esperado | Resultado |
 |--------|----------|-----------|
-| Applications `app` y `cloudflared` | `Synced`, `Healthy` | Pendiente |
-| Políticas creadas | `default-deny` en los dos namespaces; CNP `api`, `redis` y `cloudflared` en `VALID True` | Pendiente |
-| `GET /` por el quick tunnel | `200` | Pendiente |
-| `POST /mensajes` y mensaje visible | Redirección (`303`) y "Prueba R13" en la página | Pendiente |
-| Hubble, `policy-verdict` en `app` | `ingress` → `api:8080` y `api` → `redis:6379` en `ALLOWED` | Pendiente |
-| `redis` → `api:8080` (no está en la tabla) | `nc` falla (`salida=1`) y Hubble lo marca `DROPPED` | Pendiente |
+| Applications `app` y `cloudflared` | `Synced`, `Healthy` | OK, en la revisión de #143 |
+| Políticas creadas | `default-deny` en los dos namespaces; CNP `api`, `redis` y `cloudflared` en `VALID True` | OK |
+| `GET /` por el quick tunnel | `200` | OK: `200` |
+| `POST /mensajes` y mensaje visible | Redirección (`303`) y "Prueba R13" en la página | OK: `303`, y la lista muestra "Prueba R13" |
+| Hubble L7 en `cloudflared` | Pedidos de Envoy hacia `api` en `FORWARDED` | OK: `POST /mensajes` → `303` y `GET /` → `200`, a las dos réplicas de `api` |
+| Hubble, `policy-verdict` en `app` | `ingress` → `api:8080` y `api` → `redis:6379` en `ALLOWED` | OK: los dos `L3-L4 ALLOWED`; `api` → CoreDNS `:53` también |
+| `redis` → `api:8080` (no está en la tabla) | `nc` falla (`salida=1`) y Hubble lo marca `DROPPED` | OK: `salida=1`, `policy-verdict:none EGRESS DENIED` y `Policy denied DROPPED` |
+
+Extracto de Hubble (16/11, URL tapada):
+
+```text
+cloudflared/cloudflared-79f8488569-vh6hb:59412 (ingress) -> app/api-dfc8f4bd6-bp8rc:8080 (ID:12095) http-request FORWARDED (HTTP/1.1 GET http://<url>.trycloudflare.com/)
+cloudflared/cloudflared-79f8488569-vh6hb:59412 (ingress) <- app/api-dfc8f4bd6-bp8rc:8080 (ID:12095) http-response FORWARDED (HTTP/1.1 200 2ms (GET http://<url>.trycloudflare.com/))
+10.42.1.211:35566 (ingress) -> app/api-dfc8f4bd6-5dswx:8080 (ID:12095) policy-verdict:L3-L4 INGRESS ALLOWED (TCP Flags: SYN)
+app/api-dfc8f4bd6-5dswx:49466 (ID:12095) -> app/redis-5465845bbb-c5nfx:6379 (ID:11731) policy-verdict:L3-L4 EGRESS ALLOWED (TCP Flags: SYN)
+app/api-dfc8f4bd6-5dswx:49466 (ID:12095) -> app/redis-5465845bbb-c5nfx:6379 (ID:11731) policy-verdict:L3-L4 INGRESS ALLOWED (TCP Flags: SYN)
+app/redis-5465845bbb-c5nfx:45983 (ID:11731) <> app/api-dfc8f4bd6-bp8rc:8080 (ID:12095) policy-verdict:none EGRESS DENIED (TCP Flags: SYN)
+app/redis-5465845bbb-c5nfx:45983 (ID:11731) <> app/api-dfc8f4bd6-bp8rc:8080 (ID:12095) Policy denied DROPPED (TCP Flags: SYN)
+```
+
+El último flujo es el que R15 tiene que mostrar en la UI de Hubble.
+
+Captura: [prueba completa en la terminal](../capturas/hardening/r13-01-prueba-networkpolicies.png) (URL tapada).
 
 ### Vuelta atrás
 
