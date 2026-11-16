@@ -10,7 +10,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 3. Acceso admin | [03-acceso-zero-trust.md](03-acceso-zero-trust.md) | Completa |
 | 4. Nodos | [04-nodos.md](04-nodos.md) | Completa: plantilla, 4 nodos, SSH por clave y salida a internet (M03–M06) |
 | 5. Cluster | [05-cluster.md](05-cluster.md) | Completa: server y agents, Hubble, Gateway API, acceso por integrante y ArgoCD (M08–M11, M13–M17, M19–M21) |
-| 7. App | [07-app.md](07-app.md) | App definida |
+| 7. App | [07-app.md](07-app.md) | App desplegada y verificada por el Gateway (R08) |
 | 8. Publicación | [08-publicacion.md](08-publicacion.md) | Manifiesto del quick tunnel (R09); falta la prueba desde internet (R10) |
 | 8. Hardening | [hardening.md](hardening.md) | R14 y N08 hechas; R13, R15 y N07 en curso |
 | 9. Operación | [09-ansible.md](09-ansible.md) | Playbooks de P02, R16 y R17 probados en los 4 nodos; `wk-03` recreado solo con Ansible (R18) |

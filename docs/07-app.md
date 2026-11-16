@@ -106,6 +106,31 @@ podman run --rm -v $PWD/k8s/app:/m:ro,Z ghcr.io/yannh/kubeconform:v0.6.7 -strict
 # Summary: 6 resources found in 3 files - Valid: 6, Invalid: 0, Errors: 0, Skipped: 0
 ```
 
+## Verificación por el Gateway (R08)
+
+**Listo cuando (R08, #36):** pods `Running` y respuesta HTTP 200 por el Gateway desde adentro.
+
+Desde la notebook, con WARP conectado (red interna `10.10.10.0/24`), contra el Envoy del Gateway en `wk-01`, puerto `8000`:
+
+```powershell
+$env:KUBECONFIG = "$HOME\.kube\goys-tp4.yaml"
+kubectl -n argocd get application app
+kubectl -n app get pods -o wide
+kubectl -n app describe httproute api | Select-String -Pattern "Accepted|ResolvedRefs|Reason|Status"
+curl.exe -s -o NUL -w "/        %{http_code}`n" http://10.10.10.21:8000/
+curl.exe -s -o NUL -w "/healthz %{http_code}`n" http://10.10.10.21:8000/healthz
+```
+
+| Prueba | Resultado |
+|--------|-----------|
+| Application `app` | `Synced`, `Healthy` |
+| Pods | `api` x2 (en `wk-01` y `wk-02`) y `redis` en `1/1 Running` |
+| HTTPRoute `api` | `Accepted` y `ResolvedRefs` en `True` |
+| `GET /` por el Gateway | `200` |
+| `GET /healthz` por el Gateway | `200` |
+
+Captura: [verificación por el Gateway](../capturas/07-app/r08-01-gateway-200.png)
+
 ## Resiliencia (N04)
 
 `api` no guarda estado, así que corre con dos réplicas. Si cae un worker, la otra sigue atendiendo.
