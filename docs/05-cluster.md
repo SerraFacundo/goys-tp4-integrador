@@ -700,7 +700,7 @@ kubectl apply -f k8s/argocd/server-nodeport.yaml
 - **TLS:** lo sigue terminando `argocd-server` con su certificado autofirmado (el navegador avisa "Not secure"). No hay Gateway en el medio, así que `server.insecure` queda en su valor por defecto.
 - **NetworkPolicy:** a diferencia de Hubble, no hace falta una excepción. El manifiesto de ArgoCD trae `argocd-server-network-policy`, que admite todo el tráfico de entrada a `argocd-server`. Lo que impide el acceso desde afuera es que los nodos no tienen IP pública.
 
-URL: `https://10.10.10.21:30443` (o `.22`, `.23`). Usuario `admin`, contraseña en el gestor de Martín (usuarios por integrante en M18).
+URL: `https://10.10.10.21:30443` (o `.22`, `.23`). Cada integrante entra con su usuario (M18); `admin` está deshabilitado.
 
 ### Verificación
 
@@ -842,4 +842,10 @@ for u in martin facundo agustin manuel baltazar; do argocd account update-passwo
 | `argocd account can-i delete applications '*/*'` (facundo) | `no` |
 | `argocd account can-i update accounts '*'` (facundo) | `no` |
 
-Pendiente: que los 4 entren con su usuario y cambien la contraseña. Después se deshabilita `admin` (`admin.enabled: "false"` en `argocd-cm`).
+Los 4 entraron con su usuario y cambiaron la contraseña. Después se deshabilitó `admin` con `admin.enabled: "false"` en el mismo parche de `argocd-cm`; para tareas de administración se usa `martin`.
+
+| Comando | Resultado |
+|---------|-----------|
+| `argocd login ... --username admin` | `Unauthenticated desc = Account admin is disabled` |
+| `argocd login ... --username martin` | `'martin:login' logged in successfully` |
+| `argocd account list` (martin) | `admin` con `ENABLED false`, los usuarios del grupo en `true` |

@@ -9,7 +9,7 @@
 | Qué | Cómo |
 |-----|------|
 | UI | Con WARP conectado: `https://10.10.10.21:30443` (o `.22`, `.23`). El navegador avisa "Not secure" porque el certificado es autofirmado ([M17](05-cluster.md#ui-de-argocd-por-warp-m17)) |
-| Usuarios | `admin` (contraseña en el gestor de Martín). Usuarios por integrante en M18 (#33) |
+| Usuarios | Uno por integrante ([M18](05-cluster.md#usuarios-de-argocd-m18)): `martin` con `role:admin`, el resto con `role:operador`. `admin` está deshabilitado |
 | CLI | `argocd` `v3.6.1` ([releases](https://github.com/argoproj/argo-cd/releases/tag/v3.6.1)). `argocd login 10.10.10.21:30443 --insecure --username <usuario>` |
 
 ## Qué hay desplegado

@@ -1,4 +1,5 @@
 # M18: un usuario de ArgoCD por integrante (solo login por UI/CLI, sin API keys).
+# admin deshabilitado: se entra con martin (role:admin).
 # Las contraseñas no van acá: se cargan con `argocd account update-password`.
 # Se aplica con: kubectl -n argocd patch cm argocd-cm --type merge --patch-file <este archivo>
 data:
@@ -7,3 +8,4 @@ data:
   accounts.agustin: login
   accounts.manuel: login
   accounts.baltazar: login
+  admin.enabled: "false"
