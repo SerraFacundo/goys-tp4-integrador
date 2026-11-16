@@ -8,9 +8,79 @@ Cada sección es un control de seguridad de la matriz de la propuesta (Tabla 4) 
 |-------|---------|--------|
 | R14 | Pod privilegiado rechazado por Pod Security Admission | Hecha |
 | N08 | Sealed Secrets: ningún secreto en claro en el repo | Hecha |
-| R13 / R15 | NetworkPolicies default-deny y flujo bloqueado en Hubble | Pendiente |
+| R13 | NetworkPolicies default-deny y solo los flujos necesarios | En prueba |
+| R15 | Flujo bloqueado visible en Hubble | Pendiente (depende de R13) |
 | N07 | ValidatingAdmissionPolicy: solo `ghcr.io`, sin `:latest` y con limits | Hecha |
 | N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha; falta repetirla con `redis` |
+
+## R13 — NetworkPolicies default-deny
+
+**Responsable:** Manuel Rebol · **Fecha:** 16/11/2026
+
+**Listo cuando (R13, #56):** la app sigue funcionando con las políticas aplicadas.
+
+Sin políticas, cualquier pod del cluster puede hablar con `redis` o con `api`. Si alguien entra a un pod, se puede mover a los demás. Con default-deny, cada pod de `app` y `cloudflared` solo puede abrir o recibir las conexiones de la tabla de flujos ([07-app.md](07-app.md#flujos-permitidos), [08-publicacion.md](08-publicacion.md#networkpolicies-r13)).
+
+Manifiestos: [`k8s/app/networkpolicies.yaml`](../k8s/app/networkpolicies.yaml) y [`k8s/cloudflared/networkpolicies.yaml`](../k8s/cloudflared/networkpolicies.yaml). Los aplican las Applications `app` y `cloudflared`.
+
+| Namespace | Política | Qué hace |
+|-----------|----------|----------|
+| `app`, `cloudflared` | `default-deny` (`NetworkPolicy` estándar) | Selecciona todos los pods y corta la entrada y la salida |
+| `app` | `api` (`CiliumNetworkPolicy`) | Entrada solo desde el Gateway al `8080`. Salida a `redis:6379` y al DNS |
+| `app` | `redis` (`CiliumNetworkPolicy`) | Entrada solo desde `api` al `6379`. Sin salida |
+| `cloudflared` | `cloudflared` (`CiliumNetworkPolicy`) | Sin entrada. Salida al DNS, al Gateway (`8000`) y a Cloudflare (`443`, `7844`) |
+
+### Por qué `CiliumNetworkPolicy`
+
+El tráfico del Gateway no sale de un pod: lo manda el Envoy de Cilium, que corre en cada nodo. Cilium le pone la identidad reservada `ingress`, y una `NetworkPolicy` estándar no tiene forma de nombrarla. Las excepciones se escriben como `CiliumNetworkPolicy` con `fromEntities: ingress`. El default-deny queda como `NetworkPolicy` estándar porque es lo más fácil de leer.
+
+### Flujos observados antes de aplicar (16/11)
+
+Las reglas salen de lo que Hubble vio en el cluster, sin políticas, mientras se pedía la app por el quick tunnel. Cilium 1.20.4, modo túnel VXLAN.
+
+| Flujo | Identidad que ve Cilium | Regla |
+|-------|-------------------------|-------|
+| Envoy → `api:8080`, mismo nodo y nodo distinto | Origen `ingress` en los dos casos (VXLAN lleva la identidad) | `fromEntities: ingress` |
+| `api` → `redis:6379` | Pod a pod | `fromEndpoints` / `toEndpoints` por `app.kubernetes.io/name` |
+| `api`, `cloudflared` → CoreDNS `:53` | Pods `k8s-app=kube-dns` en `kube-system` | `toEndpoints` con esas etiquetas |
+| `cloudflared` → Service del Gateway `:8000` | Destino `world`: el Service apunta a `127.0.0.1:8000`, el Envoy del propio nodo | `toEntities: world`, puerto `8000` |
+| `cloudflared` → Cloudflare `:7844/UDP` | `world` | `toEntities: world`, puertos `443` y `7844` |
+| Kubelet → probes de `api` y `cloudflared` | `host` | Ninguna: Cilium deja pasar siempre el tráfico del propio nodo |
+
+`redis` no abrió ninguna conexión, así que no tiene reglas de salida.
+
+### Prueba
+
+Con WARP conectado, después de que ArgoCD aplique las políticas:
+
+```powershell
+$env:KUBECONFIG = "$HOME\.kube\goys-tp4.yaml"
+kubectl -n argocd get application app cloudflared
+kubectl get netpol,cnp -n app
+kubectl get netpol,cnp -n cloudflared
+$url = ((kubectl -n cloudflared logs deploy/cloudflared | Select-String -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' -AllMatches).Matches | Select-Object -Last 1).Value
+curl.exe -s -o NUL -w "GET  %{http_code}`n" "$url/"
+curl.exe -s -o NUL -w "POST %{http_code}`n" -X POST --data-urlencode "texto=Prueba R13" "$url/mensajes"
+curl.exe -s "$url/" | Select-String "Prueba R13"
+$nodo = kubectl -n app get pod -l app.kubernetes.io/name=redis -o jsonpath='{.items[0].spec.nodeName}'
+$agente = kubectl -n kube-system get pod -l k8s-app=cilium --field-selector spec.nodeName=$nodo -o jsonpath='{.items[0].metadata.name}'
+kubectl -n kube-system exec $agente -c cilium-agent -- hubble observe --namespace app --type policy-verdict --last 30 -o compact
+$apiIp = kubectl -n app get svc api -o jsonpath='{.spec.clusterIP}'
+kubectl -n app exec deploy/redis -- sh -c "nc -w 3 $apiIp 8080 </dev/null; echo salida=`$?"
+```
+
+| Prueba | Esperado | Resultado |
+|--------|----------|-----------|
+| Applications `app` y `cloudflared` | `Synced`, `Healthy` | Pendiente |
+| Políticas creadas | `default-deny` en los dos namespaces; CNP `api`, `redis` y `cloudflared` en `VALID True` | Pendiente |
+| `GET /` por el quick tunnel | `200` | Pendiente |
+| `POST /mensajes` y mensaje visible | Redirección (`303`) y "Prueba R13" en la página | Pendiente |
+| Hubble, `policy-verdict` en `app` | `ingress` → `api:8080` y `api` → `redis:6379` en `ALLOWED` | Pendiente |
+| `redis` → `api:8080` (no está en la tabla) | `nc` falla (`salida=1`) y Hubble lo marca `DROPPED` | Pendiente |
+
+### Vuelta atrás
+
+Si la app deja de responder, se revierte el PR de R13. ArgoCD borra las políticas (`prune`) y el tráfico vuelve a quedar abierto. Borrarlas a mano no sirve: `selfHeal` las vuelve a crear.
 
 ## R14 — Pod privilegiado rechazado
 

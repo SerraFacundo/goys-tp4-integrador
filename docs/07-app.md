@@ -21,13 +21,15 @@ Endpoints de `api`:
 
 ## Flujos permitidos
 
-La política *default-deny* bloquea cualquier flujo que no esté en esta tabla.
+La política *default-deny* bloquea cualquier flujo que no esté en esta tabla (R13, [hardening.md](hardening.md#r13--networkpolicies-default-deny)).
 
 | Origen | Destino | Puerto |
 |--------|---------|--------|
-| `cloudflared` | `api` | `8080/TCP` |
+| Gateway (Envoy de Cilium, identidad `ingress`) | `api` | `8080/TCP` |
 | `api` | `redis` | `6379/TCP` |
-| `api`, `redis` | DNS del cluster | `53/UDP` |
+| `api` | DNS del cluster (CoreDNS) | `53/UDP` y `53/TCP` |
+
+`cloudflared` no le habla a `api`: le pasa las visitas al Gateway, y el que se conecta con `api` es el Envoy del Gateway. `redis` no inicia conexiones, así que no tiene salida. Las probes del kubelet llegan desde el nodo (identidad `host`) y Cilium las deja pasar siempre.
 
 ## Secret
 

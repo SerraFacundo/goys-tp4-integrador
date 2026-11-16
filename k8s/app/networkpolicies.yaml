@@ -1,0 +1,82 @@
+# R13: NetworkPolicies del namespace "app". Ver la tabla de flujos en docs/07-app.md.
+# 1. default-deny: ningún pod del namespace recibe ni manda tráfico salvo lo que
+#    permitan las políticas de abajo.
+# 2. Las excepciones son CiliumNetworkPolicy porque el tráfico del Gateway llega
+#    desde el Envoy de Cilium con la identidad reservada "ingress", que una
+#    NetworkPolicy estándar no puede nombrar. Con VXLAN la identidad viaja en el
+#    paquete: llega como "ingress" aunque Envoy y api estén en nodos distintos.
+# Las probes del kubelet salen del propio nodo (identidad "host") y Cilium las
+# deja pasar siempre, así que no hace falta permitirlas.
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: default-deny
+  namespace: app
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  podSelector: {}
+  policyTypes:
+    - Ingress
+    - Egress
+---
+# api recibe solo desde el Gateway (Envoy de Cilium), al puerto 8080.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: api
+  namespace: app
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: api
+  ingress:
+    - fromEntities:
+        - ingress
+      toPorts:
+        - ports:
+            - port: "8080"
+              protocol: TCP
+  egress:
+    # api -> redis
+    - toEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: redis
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
+    # api -> DNS del cluster (resuelve "redis")
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: kube-system
+            k8s-app: kube-dns
+      toPorts:
+        - ports:
+            - port: "53"
+              protocol: UDP
+            - port: "53"
+              protocol: TCP
+---
+# redis recibe solo desde api, al 6379. No tiene salida: no la necesita.
+apiVersion: cilium.io/v2
+kind: CiliumNetworkPolicy
+metadata:
+  name: redis
+  namespace: app
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  endpointSelector:
+    matchLabels:
+      app.kubernetes.io/name: redis
+  ingress:
+    - fromEndpoints:
+        - matchLabels:
+            app.kubernetes.io/name: api
+      toPorts:
+        - ports:
+            - port: "6379"
+              protocol: TCP
