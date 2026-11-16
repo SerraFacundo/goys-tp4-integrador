@@ -61,7 +61,7 @@ kubectl -n cloudflared get pod -l app.kubernetes.io/name=cloudflared \
 kubectl -n cloudflared logs deploy/cloudflared | grep -o 'https://[a-z0-9-]*\.trycloudflare\.com'
 ```
 
-La URL no se commitea: cambia en cada reinicio del pod y el día de la Feria se toma de nuevo (R11, N10).
+La URL no se commitea: cambia en cada reinicio del pod y el día de la Feria se toma de nuevo. Qué hacer cuando cambia: [runbook del quick tunnel](runbook-quick-tunnel.md) (R11).
 
 ## Verificación desde internet (R10)
 
@@ -123,4 +123,3 @@ La regla del Gateway usa `world` porque con el Gateway en host network el Servic
 ## Pendiente
 
 - **Políticas de admisión (N07):** si se exige que las imágenes vengan de `ghcr.io`, `cloudflare/cloudflared` (Docker Hub) queda afuera. Opciones: exceptuar el namespace `cloudflared` o copiar la imagen a GHCR.
-- **Runbook de URL nueva (R11).**

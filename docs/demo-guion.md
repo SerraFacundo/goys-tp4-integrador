@@ -143,7 +143,7 @@ Video de la recreación de `wk-03` con `cluster.yml` ([etapa 9](09-ansible.md#re
 | Problema | Plan B |
 |----------|--------|
 | No hay internet en la Feria | Hotspot del celular. Si tampoco, videos |
-| La URL del túnel no responde | `kubectl -n cloudflared get pods`; si se reinició, la URL cambió: repetir el paso 3 de *Una hora antes* y regenerar el QR |
+| La URL del túnel no responde | `kubectl -n cloudflared get pods`; si se reinició, la URL cambió: repetir el paso 3 de *Una hora antes* y regenerar el QR ([runbook R11](runbook-quick-tunnel.md)) |
 | WARP no conecta | Videos de las pruebas 2 a 7 |
 | Una prueba da otro resultado | Pasar al video de esa prueba y seguir; revisarlo después |
 
