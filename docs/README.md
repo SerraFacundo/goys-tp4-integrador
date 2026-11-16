@@ -23,6 +23,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | — | [backups.md](backups.md) | Backups: snapshots de etcd, backup de VMs y restore probado (N03) |
 | — | [recursos.md](recursos.md) | Consumo de RAM con todo desplegado (M22) |
 | — | [runbook-alta-nodo.md](runbook-alta-nodo.md) | Runbook: alta y baja de un nodo nuevo (R19) |
+| — | [../poster/poster.pdf](../poster/poster.pdf) | Póster A1 para la Feria (R25); fuente en `poster/poster.typ` |
 
 ## Reglas
 
