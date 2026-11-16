@@ -29,7 +29,7 @@ La política *default-deny* bloquea cualquier flujo que no esté en esta tabla (
 | `api` | `redis` | `6379/TCP` |
 | `api` | DNS del cluster (CoreDNS) | `53/UDP` y `53/TCP` |
 
-`cloudflared` no le habla a `api`: le pasa las visitas al Gateway, y el que se conecta con `api` es el Envoy del Gateway. `redis` no inicia conexiones, así que no tiene salida. Las probes del kubelet llegan desde el nodo (identidad `host`) y Cilium las deja pasar siempre.
+`cloudflared` no le habla a `api`: le pasa las visitas al Gateway, y el que se conecta con `api` es el Envoy del Gateway. Igual la política de `cloudflared` tiene que permitir la salida a `api:8080`, porque Envoy la revisa antes de reenviar el pedido ([hardening.md](hardening.md#tres-intentos-403-en-el-gateway)). `redis` no inicia conexiones, así que no tiene salida. Las probes del kubelet llegan desde el nodo (identidad `host`) y Cilium las deja pasar siempre.
 
 ## Secret
 

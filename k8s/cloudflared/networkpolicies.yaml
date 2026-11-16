@@ -39,7 +39,8 @@ spec:
               protocol: TCP
     # Origen del túnel: el Service del Gateway en el puerto 8000. El Service apunta
     # a 127.0.0.1:8000 (el Envoy del propio nodo, host network) y el eBPF ve ese
-    # destino como "world". "ingress" se agregó en el segundo intento (R13, 16/11).
+    # destino como "world". "ingress" quedó del segundo intento (R13, 16/11);
+    # no se probó si hace falta.
     - toEntities:
         - world
         - ingress
