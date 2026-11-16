@@ -9,7 +9,7 @@ Cada sección es un control de seguridad de la matriz de la propuesta (Tabla 4) 
 | R14 | Pod privilegiado rechazado por Pod Security Admission | Hecha |
 | N08 | Sealed Secrets: ningún secreto en claro en el repo | Hecha |
 | R13 | NetworkPolicies default-deny y solo los flujos necesarios | Hecha |
-| R15 | Flujo bloqueado visible en Hubble | Pendiente (depende de R13) |
+| R15 | Flujo bloqueado visible en Hubble | Hecha |
 | N07 | ValidatingAdmissionPolicy: solo `ghcr.io`, sin `:latest` y con limits | Hecha |
 | N05 | Tetragon detecta una shell dentro de un pod ([hardening-tetragon.md](hardening-tetragon.md)) | Hecha; falta repetirla con `redis` |
 
@@ -123,6 +123,41 @@ Captura: [prueba completa en la terminal](../capturas/hardening/r13-01-prueba-ne
 ### Vuelta atrás
 
 Si la app deja de responder, se revierte el PR de R13. ArgoCD borra las políticas (`prune`) y el tráfico vuelve a quedar abierto. Borrarlas a mano no sirve: `selfHeal` las vuelve a crear.
+
+## R15 — Flujo bloqueado en Hubble
+
+**Responsable:** Manuel Rebol · **Fecha:** 16/11/2026
+
+**Listo cuando (R15, #57):** un flujo que las NetworkPolicies de R13 no permiten aparece bloqueado en Hubble, con captura.
+
+Escenario: alguien consiguió entrar al pod de `redis` y desde ahí intenta dos cosas. Llegar a `api:8080` (movimiento lateral) y salir a internet a `1.1.1.1:443` (exfiltración). La política de `redis` no tiene reglas de salida, así que Cilium tiene que descartar los dos intentos. Mientras tanto la app sigue atendiendo por el quick tunnel.
+
+Con WARP conectado, la UI de Hubble abierta en `http://10.10.10.21:31235/?namespace=app` ([M11](05-cluster.md#hubble-m11)) y 10 vueltas de este bloque, una cada 3 segundos:
+
+```powershell
+$env:KUBECONFIG = "$HOME\.kube\goys-tp4.yaml"
+$apiIp = kubectl -n app get svc api -o jsonpath='{.spec.clusterIP}'
+$url = ((kubectl -n cloudflared logs deploy/cloudflared | Select-String -Pattern 'https://[a-z0-9-]+\.trycloudflare\.com' -AllMatches).Matches | Select-Object -Last 1).Value
+1..10 | ForEach-Object {
+  curl.exe -s -o NUL -w "app=%{http_code}  " "$url/"
+  kubectl -n app exec deploy/redis -- sh -c "nc -w 2 $apiIp 8080 </dev/null; echo -n redis-api=`$?' '; nc -w 2 1.1.1.1 443 </dev/null; echo redis-internet=`$?"
+  Start-Sleep 3
+}
+```
+
+| Prueba | Esperado | Resultado |
+|--------|----------|-----------|
+| App por el quick tunnel | `200` en cada vuelta | OK: 10 de 10 en `200` |
+| `redis` → `api:8080` | `nc` falla (`redis-api=1`) | OK: 10 de 10 fallan |
+| `redis` → `1.1.1.1:443` | `nc` falla (`redis-internet=1`) | OK: 10 de 10 fallan |
+| Mapa de servicios de Hubble, namespace `app` | `redis` → `api:8080` y `redis` → `world:443` en rojo; `Ingress` → `api` y `api` → `redis` sin cortes | OK |
+| Tabla de flujos | `redis` → `api` `8080` y `redis` → `world 1.1.1.1` `443` en `dropped`; `ingress` → `api` y `api` → `redis` en `forwarded` | OK |
+
+El `nc` falla por timeout: el SYN no llega a destino, Cilium lo descarta en el nodo de `redis` (`policy-verdict:none EGRESS DENIED` en `hubble observe`, como en la prueba de R13).
+
+![Mapa de servicios de Hubble con los flujos bloqueados desde redis](../capturas/hardening/r15-01-hubble-mapa.png)
+
+Capturas: [mapa de servicios](../capturas/hardening/r15-01-hubble-mapa.png) · [tabla de flujos, `dropped` y `forwarded`](../capturas/hardening/r15-02-hubble-flujos-dropped.png) · [intentos desde `redis` y la app en `200`](../capturas/hardening/r15-03-intentos-desde-redis.png)
 
 ## R14 — Pod privilegiado rechazado
 
