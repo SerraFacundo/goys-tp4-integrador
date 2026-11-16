@@ -68,7 +68,7 @@ La URL no se commitea: cambia en cada reinicio del pod y el día de la Feria se 
 1. Celular con **datos móviles** (Wi-Fi apagado) y **sin** el cliente de Cloudflare One (WARP).
 2. Abrir la URL de los logs. Tiene que cargar el libro de visitas.
 3. Dejar un mensaje y recargar: tiene que aparecer (prueba `api` → `redis`).
-4. Captura del celular en `capturas/08-publicacion/`, con la URL visible.
+4. Captura del celular en `capturas/08-publicacion/`, con `.trycloudflare.com` visible y el subdominio tapado.
 
 Desde la notebook, también sin WARP:
 
@@ -77,13 +77,15 @@ curl -sS -o /dev/null -w '%{http_code}\n' https://<url>.trycloudflare.com/
 curl -sS https://<url>.trycloudflare.com/healthz
 ```
 
-| Prueba | Resultado |
-|--------|-----------|
-| `kubectl -n cloudflared get pods` | Pendiente |
-| Log de `cloudflared`: URL asignada y conexiones registradas | Pendiente |
-| `curl` a `/` y `/healthz` por la URL pública, sin WARP | Pendiente |
-| Celular con datos: la app carga | Pendiente |
-| Celular con datos: mensaje nuevo visible al recargar | Pendiente |
+Prueba del 15/11.
+
+| Prueba | Resultado | Captura |
+|--------|-----------|---------|
+| `kubectl -n cloudflared get pods` | 1 pod `1/1 Running` | [`r10-01-kubectl-curl-sin-warp.png`](../capturas/08-publicacion/r10-01-kubectl-curl-sin-warp.png) |
+| Log de `cloudflared`: URL asignada y conexiones registradas | Quick tunnel pedido y URL asignada; conexión registrada con Cloudflare (`eze07`, QUIC) | [`r10-01-kubectl-curl-sin-warp.png`](../capturas/08-publicacion/r10-01-kubectl-curl-sin-warp.png) |
+| `curl` a `/` y `/healthz` por la URL pública, sin WARP | `/` responde `200` y `/healthz` responde `ok` | [`r10-01-kubectl-curl-sin-warp.png`](../capturas/08-publicacion/r10-01-kubectl-curl-sin-warp.png) |
+| Celular con datos: la app carga | Con 4G y Wi-Fi apagado, carga el libro de visitas | [`r10-02-celular-app.png`](../capturas/08-publicacion/r10-02-celular-app.png) |
+| Celular con datos: mensaje nuevo visible al recargar | "Mensaje de prueba" aparece en "Últimos mensajes" después de recargar | [`r10-03-celular-mensaje.png`](../capturas/08-publicacion/r10-03-celular-mensaje.png) |
 
 ## IP pública sin puertos abiertos (R22)
 
