@@ -56,6 +56,7 @@
 | 2026-11-15 | R09: manifiesto del quick tunnel en `k8s/cloudflared/` y procedimiento de R10 en `docs/08-publicacion.md`. Falta desplegarlo y probarlo desde un celular | Manuel Rebol |        |
 | 2026-11-15 | M06 cerrada: salida a internet verificada desde `cp-01` (`ping` y `curl` OK) después del arreglo de NAT de Martín; docs de la etapa 4 actualizados | Agustín Manrique |        |
 | 2026-11-15 | R14: pod privilegiado rechazado por PSA `restricted` en el namespace `app`; sección en `docs/hardening.md` con capturas | Agustín Manrique |        |
+| 2026-11-15 | Clave SSH de la notebook de Facundo agregada en los 4 nodos (`authorized_keys` de `goys`) y en la plantilla 9000 | Agustín Manrique |        |
 | 2026-11-15 | N08: controller de Sealed Secrets `v0.41.2` vía ArgoCD y SealedSecret `redis-auth`; la App X pasa a `Running`. Sección en `docs/hardening.md` | Agustín Manrique |        |
 | 2026-11-15 | N03: snapshots de etcd (automáticos + manual), backup manual de `wk-03`, job nocturno (lo crea Martín) y restore probado como VM aislada. Doc en `docs/backups.md` | Agustín Manrique |        |
 | 2026-11-15 | N01 completo: cambio visible en la app, CI publica `goys-app:fa923d5` y ArgoCD lo despliega solo. N04: `preStop` en `api`, drain sin cortes y caída dura de un worker (≈47 s con errores hasta `NotReady`); capturas en `capturas/07-app/` | Facundo Serra |        |
@@ -66,6 +67,7 @@
 | 2026-11-15 | R20: runbook de upgrade de RKE2 en `docs/runbook-upgrade-rke2.md`. N10: guion de la demo en `docs/demo-guion.md` | Baltazar Molteni |        |
 | 2026-11-15 | M22: consumo de RAM con todo desplegado: nodos entre 20 % y 67 %, host al 80 % con 3 GB ahorrados por KSM y sin swap. Doc en `docs/recursos.md` | Agustín Manrique |        |
 | 2026-11-15 | R19: runbook de alta y baja de un nodo nuevo en `docs/runbook-alta-nodo.md` | Agustín Manrique |        |
+| 2026-11-16 | R25: póster A1 final en `poster/`: `poster.typ` editable, `poster.pdf` para imprimir y la captura de Hubble de la Fig. 2 | Agustín Manrique |        |
 
 ## 🚧 Pendientes / decisiones
 

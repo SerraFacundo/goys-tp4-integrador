@@ -95,7 +95,7 @@ Hay cuatro fronteras: **internet → Cloudflare**, **Cloudflare → red del lab*
 | T | Imagen modificada o de un registry no confiable | Firma keyless con cosign; ValidatingAdmissionPolicy que solo acepta `ghcr.io` | 🔄 N02, N07 |
 | T | Tag `:latest` que cambia sin control | ValidatingAdmissionPolicy rechaza `:latest`; CI hace bump del tag | 🔄 N07, N01 |
 | I | Vulnerabilidades conocidas en la imagen | Trivy en el CI, falla si hay críticas | 🔄 R05, N01 |
-| E / I | Movimiento lateral entre pods | NetworkPolicies default-deny; Hubble muestra lo bloqueado | ✅ R13 / 🔄 R15 |
+| E / I | Movimiento lateral entre pods | NetworkPolicies default-deny; Hubble muestra lo bloqueado | ✅ R13, R15 |
 | R | Shell dentro de un pod sin que nadie se entere | Tetragon detecta `kubectl exec` / shell | ✅ N05 |
 | D | Un pod consume todo el nodo | Limits obligatorios (N07) | 🔄 N07 |
 
