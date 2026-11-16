@@ -37,11 +37,15 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-    # Origen del túnel: el Service del Gateway en el puerto 8000. Con el Gateway
-    # en host network el Service apunta a 127.0.0.1:8000 (el Envoy del propio nodo)
-    # y Hubble ve el destino con identidad "world" (observado el 16/11, R13).
+    # Origen del túnel: el Service del Gateway en el puerto 8000. Cilium lo controla
+    # dos veces (R13, 16/11):
+    # - eBPF, al abrir la conexión: el Service apunta a 127.0.0.1:8000 (el Envoy del
+    #   propio nodo, host network) y el destino se ve como "world".
+    # - Envoy, al recibir el pedido: revisa la salida de cloudflared hacia la
+    #   identidad "ingress". Sin esta entidad Envoy responde 403.
     - toEntities:
         - world
+        - ingress
       toPorts:
         - ports:
             - port: "8000"
