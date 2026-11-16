@@ -37,18 +37,27 @@ spec:
               protocol: UDP
             - port: "53"
               protocol: TCP
-    # Origen del túnel: el Service del Gateway en el puerto 8000. Cilium lo controla
-    # dos veces (R13, 16/11):
-    # - eBPF, al abrir la conexión: el Service apunta a 127.0.0.1:8000 (el Envoy del
-    #   propio nodo, host network) y el destino se ve como "world".
-    # - Envoy, al recibir el pedido: revisa la salida de cloudflared hacia la
-    #   identidad "ingress". Sin esta entidad Envoy responde 403.
+    # Origen del túnel: el Service del Gateway en el puerto 8000. El Service apunta
+    # a 127.0.0.1:8000 (el Envoy del propio nodo, host network) y el eBPF ve ese
+    # destino como "world". "ingress" se agregó en el segundo intento (R13, 16/11).
     - toEntities:
         - world
         - ingress
       toPorts:
         - ports:
             - port: "8000"
+              protocol: TCP
+    # Destino final del pedido: api:8080. Desde Cilium 1.17.2 (CVE-2025-30162)
+    # Envoy aplica la política de salida del pod que hace el pedido hacia el
+    # backend de la ruta, como si cloudflared le hablara directo a api. Sin esta
+    # regla Envoy responde 403 sin llegar a api.
+    - toEndpoints:
+        - matchLabels:
+            k8s:io.kubernetes.pod.namespace: app
+            app.kubernetes.io/name: api
+      toPorts:
+        - ports:
+            - port: "8080"
               protocol: TCP
     # Red de Cloudflare: 443 para pedir el quick tunnel y 7844 para las
     # conexiones del túnel (QUIC por UDP, HTTP/2 por TCP si UDP no sale).
