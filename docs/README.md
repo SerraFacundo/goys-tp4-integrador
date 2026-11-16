@@ -15,11 +15,11 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | 8. Hardening | [hardening.md](hardening.md) | R14, N08 y N07 hechas; R13 y R15 en curso |
 | 9. Operación | [09-ansible.md](09-ansible.md) | Playbooks de P02, R16 y R17 probados en los 4 nodos; `wk-03` recreado solo con Ansible (R18) |
 | — | [modelo-amenazas.md](modelo-amenazas.md) | Modelo de amenazas STRIDE (N09) |
-| — | [hardening-tetragon.md](hardening-tetragon.md) | Detección de shells en pods con Tetragon (N05): probada con capturas; falta repetirla con `redis` (N08) |
+| — | [hardening-tetragon.md](hardening-tetragon.md) | Detección de shells en pods con Tetragon (N05): probada con `argocd-repo-server` y con `redis` |
 | — | [runbook-rotacion-token-admin.md](runbook-rotacion-token-admin.md) | Runbook: rotación del token de `lab-admin` (P04) |
 | — | [runbook-argocd.md](runbook-argocd.md) | Runbook: operar ArgoCD (R21) |
 | — | [runbook-upgrade-rke2.md](runbook-upgrade-rke2.md) | Runbook: upgrade de RKE2 con Ansible (R20) |
-| — | [demo-guion.md](demo-guion.md) | Guion de la demo y QR a la app (N10) |
+| — | [demo-guion.md](demo-guion.md) | Guion de la demo y QR a la app (N10), en bash y PowerShell, con el ensayo (C05) |
 | — | [backups.md](backups.md) | Backups: snapshots de etcd, backup de VMs y restore probado (N03) |
 | — | [recursos.md](recursos.md) | Consumo de RAM con todo desplegado (M22) |
 | — | [runbook-alta-nodo.md](runbook-alta-nodo.md) | Runbook: alta y baja de un nodo nuevo (R19) |

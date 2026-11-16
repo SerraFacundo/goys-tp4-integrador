@@ -52,7 +52,7 @@ kubectl get tracingpolicies                                    # shell-en-pod
 
 ## Verificación
 
-Hasta que arranque la app (N08), la prueba se hace sobre un pod que ya tiene shell: `argocd-repo-server` (imagen basada en Ubuntu). El día de la Feria se repite con `redis`.
+Hasta que arrancó la app (N08), la prueba se hizo sobre un pod que ya tiene shell: `argocd-repo-server` (imagen basada en Ubuntu). Con la app arriba se repitió con `redis` (16/11, en el ensayo de la demo); los comandos están en la [prueba 5 del guion](demo-guion.md#5-detección-de-una-shell-dentro-de-un-pod-n05).
 
 Los eventos los ve el agente del nodo donde corre el pod, así que primero se busca ese nodo:
 
@@ -73,7 +73,7 @@ kubectl -n argocd exec deploy/argocd-repo-server -- sh -c "id"
 | DaemonSet en los 3 workers, nada en `cp-01` | `3/3`, un pod `2/2 Running` en cada `wk-01..03`, 0 reinicios | [`n05-01-instalacion.png`](../capturas/hardening/n05-01-instalacion.png) |
 | `kubectl get tracingpolicies` | `shell-en-pod` | [`n05-01-instalacion.png`](../capturas/hardening/n05-01-instalacion.png) |
 | Shell en `argocd-repo-server` (`sh -c "id"`): eventos de `shell-en-pod` | Dos eventos: `runc` en `wk-01` sin pod (selector 1) y `argocd/argocd-repo-server-...` con `/usr/bin/sh` (selector 2) | [`n05-02-shell-detectada.png`](../capturas/hardening/n05-02-shell-detectada.png) |
-| Shell en `redis` (después de N08) | Pendiente | — |
+| Shell en `redis` (`sh -c id`) | Los mismos dos eventos: `runc` en `wk-01` sin pod y `app/redis-5465845bbb-c5nfx` con `/bin/sh`. La terminal de la "intrusión" muestra `uid=999(redis)` | [`n05-03-shell-redis.png`](../capturas/hardening/n05-03-shell-redis.png) |
 
 ### Primera prueba: el evento sin pod
 
