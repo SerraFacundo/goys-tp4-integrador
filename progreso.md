@@ -64,6 +64,8 @@
 | 2026-11-15 | P02, R16 y R17: playbooks `preparar-nodos.yml`, `instalar-rke2.yml` y `cluster.yml` en `ansible/`; doc en `docs/09-ansible.md`. P02 y R16 aplicados en los 4 nodos (`Hardening OK`) y R17 comparado con el cluster con `--check --diff` (sin diferencias de fondo); R18: `wk-03` borrado y recreado desde la plantilla, `Ready` solo con `cluster.yml` (≈10 min); capturas en `capturas/09-ansible/` | Baltazar Molteni |        |
 | 2026-11-15 | N07: `ValidatingAdmissionPolicy` en `k8s/hardening/` (solo `ghcr.io`, sin `:latest`, limits obligatorios) y pods de prueba en `k8s/pruebas/`. Probada en el cluster: el pod correcto entra, los 3 que rompen una regla son rechazados y `api` reinicia sin problema; capturas en `capturas/hardening/` | Baltazar Molteni |        |
 | 2026-11-15 | R20: runbook de upgrade de RKE2 en `docs/runbook-upgrade-rke2.md`. N10: guion de la demo en `docs/demo-guion.md` | Baltazar Molteni |        |
+| 2026-11-15 | M22: consumo de RAM con todo desplegado: nodos entre 20 % y 67 %, host al 80 % con 3 GB ahorrados por KSM y sin swap. Doc en `docs/recursos.md` | Agustín Manrique |        |
+| 2026-11-15 | R19: runbook de alta y baja de un nodo nuevo en `docs/runbook-alta-nodo.md` | Agustín Manrique |        |
 
 ## 🚧 Pendientes / decisiones
 

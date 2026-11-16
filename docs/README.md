@@ -21,6 +21,8 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | — | [runbook-upgrade-rke2.md](runbook-upgrade-rke2.md) | Runbook: upgrade de RKE2 con Ansible (R20) |
 | — | [demo-guion.md](demo-guion.md) | Guion de la demo y QR a la app (N10) |
 | — | [backups.md](backups.md) | Backups: snapshots de etcd, backup de VMs y restore probado (N03) |
+| — | [recursos.md](recursos.md) | Consumo de RAM con todo desplegado (M22) |
+| — | [runbook-alta-nodo.md](runbook-alta-nodo.md) | Runbook: alta y baja de un nodo nuevo (R19) |
 
 ## Reglas
 
