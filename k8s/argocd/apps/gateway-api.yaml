@@ -1,0 +1,27 @@
+# k8s/gateway-api: CRDs de Gateway API v1.6.3 y el Gateway goys-gateway (M13).
+# Antes se aplicaban a mano. Wave 0: el Gateway tiene que existir antes que las
+# HTTPRoutes de las apps (wave 1).
+# Sin prune: si se borra o se mueve el bundle, borrar los CRDs borraría todos los
+# Gateways y HTTPRoutes del cluster.
+# ServerSideApply: los CRDs superan el límite de la anotación del apply normal.
+# Sin finalizer: borrar la Application no borra nada del cluster.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: gateway-api
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+    targetRevision: main
+    path: k8s/gateway-api
+  destination:
+    server: https://kubernetes.default.svc
+  syncPolicy:
+    syncOptions:
+      - ServerSideApply=true

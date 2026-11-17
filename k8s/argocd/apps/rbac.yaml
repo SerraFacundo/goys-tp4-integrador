@@ -1,0 +1,20 @@
+# k8s/rbac: ClusterRoleBindings por integrante (M14). Antes se aplicaban a mano.
+# Sacarle el acceso a alguien pasa a ser un PR que borra su binding.
+# Sin finalizer: borrar la Application no borra los bindings.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: rbac
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+    targetRevision: main
+    path: k8s/rbac
+  destination:
+    server: https://kubernetes.default.svc
