@@ -1,0 +1,21 @@
+# k8s/cilium: CiliumNetworkPolicy que abre la UI de Hubble a 10.10.10.0/24 (M11).
+# Antes se aplicaba a mano. La config de Cilium (HelmChartConfig) NO va acá:
+# la aplica RKE2 y la escribe Ansible; si Argo rompiera Cilium se quedaría sin red.
+# Sin finalizer: borrar la Application no borra la política.
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: cilium-politicas
+  namespace: argocd
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+  annotations:
+    argocd.argoproj.io/sync-wave: "0"
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/SerraFacundo/goys-tp4-integrador
+    targetRevision: main
+    path: k8s/cilium
+  destination:
+    server: https://kubernetes.default.svc
