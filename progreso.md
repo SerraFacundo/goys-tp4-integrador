@@ -68,6 +68,7 @@
 | 2026-11-15 | M22: consumo de RAM con todo desplegado: nodos entre 20 % y 67 %, host al 80 % con 3 GB ahorrados por KSM y sin swap. Doc en `docs/recursos.md` | Agustín Manrique |        |
 | 2026-11-15 | R19: runbook de alta y baja de un nodo nuevo en `docs/runbook-alta-nodo.md` | Agustín Manrique |        |
 | 2026-11-16 | R25: póster A1 final en `poster/`: `poster.typ` editable, `poster.pdf` para imprimir y la captura de Hubble de la Fig. 2 | Agustín Manrique |        |
+| 2026-11-17 | R23: matriz de evidencias en `docs/matriz-evidencias.md`: las 10 capas de la Tabla 4 y las pruebas agregadas, con resultado y links a docs y capturas | Agustín Manrique |        |
 
 ## 🚧 Pendientes / decisiones
 
