@@ -1,0 +1,26 @@
+# N06: cuarentena de red para un pod comprometido, en cualquier namespace.
+# No selecciona nada hasta que alguien etiqueta un pod durante un incidente:
+#   kubectl -n <ns> label pod <pod> goys.io/cuarentena=true
+# Las reglas *Deny de Cilium ganan sobre cualquier allow (las CNP de R13 incluidas),
+# así que el pod queda sin red de entrada ni de salida. kubectl exec sigue andando
+# (va por el kubelet, no por la red del pod), para revisar el pod antes de borrarlo.
+# "all" incluye al propio nodo: las probes del kubelet también fallan y la liveness
+# termina reiniciando el contenedor. Por eso la evidencia se junta antes de aislar.
+# Procedimiento completo: docs/simulacro-incidente.md.
+apiVersion: cilium.io/v2
+kind: CiliumClusterwideNetworkPolicy
+metadata:
+  name: cuarentena
+  labels:
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  description: "N06: aísla por completo los pods con la etiqueta goys.io/cuarentena=true"
+  endpointSelector:
+    matchLabels:
+      goys.io/cuarentena: "true"
+  ingressDeny:
+    - fromEntities:
+        - all
+  egressDeny:
+    - toEntities:
+        - all
