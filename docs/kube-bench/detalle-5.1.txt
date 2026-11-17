@@ -1,0 +1,17 @@
+﻿== 5.1.3 ClusterRoles con comodín (fuera de la lista blanca de RKE2)
+argocd-application-controller
+argocd-server
+== 5.1.3 Roles con comodín
+== 5.1.5 SA default con automount distinto de false (sin kube-system)
+app
+argocd
+cilium-secrets
+cloudflared
+gateway
+== 5.1.6 Pods con token montado (sin kube-system)
+argocd/argocd-application-controller-0 sa=argocd-application-controller
+argocd/argocd-applicationset-controller-f6bc6968d-7gckw sa=argocd-applicationset-controller
+argocd/argocd-dex-server-55b9777447-thk6g sa=argocd-dex-server
+argocd/argocd-notifications-controller-b9499f64b-bk84m sa=argocd-notifications-controller
+argocd/argocd-redis-79f897d5d9-n5gwd sa=argocd-redis
+argocd/argocd-server-67795db55d-d7cg4 sa=argocd-server
