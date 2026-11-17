@@ -31,8 +31,13 @@ kubectl -n app describe pod $pod | Out-File -Encoding utf8 "$HOME\Desktop\eviden
 "Evidencia guardada fuera del repo: $HOME\Desktop\evidencia-$pod.txt"
 
 Paso "4. Aislamiento: cuarentena"
+# La cuarentena recién corta cuando Cilium le da al pod su identidad nueva (en el simulacro
+# del 17/11 tardó entre 6 y 24 s). Se espera a que cambie antes de seguir.
+$idAntes = kubectl -n app get ciliumendpoint $pod -o jsonpath='{.status.identity.id}'
 kubectl -n app label pod $pod goys.io/cuarentena=true
-Start-Sleep 5
+$t0 = Get-Date
+do { Start-Sleep 1; $id = kubectl -n app get ciliumendpoint $pod -o jsonpath='{.status.identity.id}' } until (($id -and $id -ne $idAntes) -or ((Get-Date) - $t0).TotalSeconds -gt 60)
+"identidad de Cilium: $idAntes -> $id en {0:N0} s" -f ((Get-Date) - $t0).TotalSeconds
 curl.exe -s -o NUL -w "app con redis aislado: %{http_code}`n" "$url/"
 Start-Sleep 2
 kubectl -n kube-system exec $agente -c cilium-agent -- hubble observe --to-pod "app/$pod" --verdict DROPPED --last 4 -o compact
