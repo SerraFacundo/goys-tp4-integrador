@@ -26,6 +26,7 @@ Cuando el estado real del lab difiere de la propuesta, manda lo que está acá (
 | — | [recursos.md](recursos.md) | Consumo de RAM con todo desplegado (M22) |
 | — | [runbook-alta-nodo.md](runbook-alta-nodo.md) | Runbook: alta y baja de un nodo nuevo (R19) |
 | — | [runbook-quick-tunnel.md](runbook-quick-tunnel.md) | Runbook: URL nueva del quick tunnel y paso a un túnel con nombre (R11) |
+| — | [matriz-evidencias.md](matriz-evidencias.md) | Matriz de evidencias: cada control con su prueba, resultado y captura (R23) |
 | — | [../poster/poster.pdf](../poster/poster.pdf) | Póster A1 para la Feria (R25); fuente en `poster/poster.typ` |
 
 ## Reglas
