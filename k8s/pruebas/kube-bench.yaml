@@ -1,0 +1,173 @@
+# M12: auditoría CIS con kube-bench (benchmark rke2-cis-1.9). ArgoCD NO lee esta carpeta.
+# Es una corrida puntual, como las pruebas de R14 y N07: se aplica a mano, se guardan los logs
+# y se borra. No queda nada corriendo (y ttlSecondsAfterFinished lo borra igual a la hora).
+#   kubectl apply -f k8s/pruebas/kube-bench.yaml
+#   kubectl -n kube-system wait --for=condition=complete job/kube-bench-cp job/kube-bench-wk --timeout=300s
+#   kubectl -n kube-system logs job/kube-bench-cp > docs/kube-bench/cp-01.txt   (PowerShell: | Out-File -Encoding utf8 ...)
+#   kubectl -n kube-system logs job/kube-bench-wk > docs/kube-bench/wk-01.txt
+#   kubectl delete -f k8s/pruebas/kube-bench.yaml
+# Va en kube-system porque necesita hostPID y leer archivos del nodo: el resto del cluster
+# está en Pod Security "restricted" y no lo admitiría. Los montajes son de solo lectura.
+# rke2-cis-1.9 es el benchmark de RKE2 más nuevo de kube-bench v0.16.0; el cluster es 1.36,
+# así que algunos controles pueden no aplicar (se analizan en docs/kube-bench.md).
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-bench-cp
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-bench
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kube-bench
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostPID: true
+      # hostNetwork para que kubectl (controles de "policies") llegue al API server
+      # por 127.0.0.1:6443 con el kubeconfig de admin de RKE2.
+      hostNetwork: true
+      nodeSelector:
+        node-role.kubernetes.io/control-plane: "true"
+      tolerations:
+        - operator: Exists
+      containers:
+        - name: kube-bench
+          image: docker.io/aquasec/kube-bench:v0.16.0
+          command:
+            - kube-bench
+            - run
+            - --benchmark
+            - rke2-cis-1.9
+            - --targets
+            - master,etcd,controlplane,node,policies
+          env:
+            - name: KUBECONFIG
+              value: /etc/rancher/rke2/rke2.yaml
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: var-lib-rancher
+              mountPath: /var/lib/rancher
+              readOnly: true
+            - name: etc-rancher
+              mountPath: /etc/rancher
+              readOnly: true
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+            - name: etc-systemd
+              mountPath: /etc/systemd
+              readOnly: true
+            - name: lib-systemd
+              mountPath: /lib/systemd
+              readOnly: true
+            - name: usr-local-lib-systemd
+              mountPath: /usr/local/lib/systemd
+              readOnly: true
+      volumes:
+        - name: var-lib-rancher
+          hostPath:
+            path: /var/lib/rancher
+        - name: etc-rancher
+          hostPath:
+            path: /etc/rancher
+        - name: var-lib-kubelet
+          hostPath:
+            path: /var/lib/kubelet
+        - name: etc-systemd
+          hostPath:
+            path: /etc/systemd
+        - name: lib-systemd
+          hostPath:
+            path: /lib/systemd
+        - name: usr-local-lib-systemd
+          hostPath:
+            path: /usr/local/lib/systemd
+---
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: kube-bench-wk
+  namespace: kube-system
+  labels:
+    app.kubernetes.io/name: kube-bench
+    app.kubernetes.io/part-of: goys-tp4
+spec:
+  backoffLimit: 0
+  ttlSecondsAfterFinished: 3600
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: kube-bench
+    spec:
+      restartPolicy: Never
+      automountServiceAccountToken: false
+      hostPID: true
+      nodeSelector:
+        kubernetes.io/hostname: wk-01
+      containers:
+        - name: kube-bench
+          image: docker.io/aquasec/kube-bench:v0.16.0
+          command:
+            - kube-bench
+            - run
+            - --benchmark
+            - rke2-cis-1.9
+            - --targets
+            - node
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 500m
+              memory: 256Mi
+          volumeMounts:
+            - name: var-lib-rancher
+              mountPath: /var/lib/rancher
+              readOnly: true
+            - name: etc-rancher
+              mountPath: /etc/rancher
+              readOnly: true
+            - name: var-lib-kubelet
+              mountPath: /var/lib/kubelet
+              readOnly: true
+            - name: etc-systemd
+              mountPath: /etc/systemd
+              readOnly: true
+            - name: lib-systemd
+              mountPath: /lib/systemd
+              readOnly: true
+            - name: usr-local-lib-systemd
+              mountPath: /usr/local/lib/systemd
+              readOnly: true
+      volumes:
+        - name: var-lib-rancher
+          hostPath:
+            path: /var/lib/rancher
+        - name: etc-rancher
+          hostPath:
+            path: /etc/rancher
+        - name: var-lib-kubelet
+          hostPath:
+            path: /var/lib/kubelet
+        - name: etc-systemd
+          hostPath:
+            path: /etc/systemd
+        - name: lib-systemd
+          hostPath:
+            path: /lib/systemd
+        - name: usr-local-lib-systemd
+          hostPath:
+            path: /usr/local/lib/systemd
