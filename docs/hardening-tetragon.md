@@ -92,8 +92,11 @@ Con la primera versión de la política (solo el selector 1), la shell en `argoc
 
 Por eso se agregó el selector 2: cuando `sh` ejecuta `id`, el que hace el `exec` ya es la shell dentro del pod.
 
+## Simulacro de incidente (N06)
+
+Esta política es la detección del [simulacro de incidente](simulacro-incidente.md): registró la shell y cada comando del atacante en el momento.
+
 ## Pendiente
 
 - **Políticas de admisión (N07):** las imágenes de Tetragon vienen de `quay.io/cilium`. Si la política de "solo `ghcr.io`" alcanza a `kube-system`, hay que exceptuarlo (ahí también están las imágenes de RKE2 y Cilium).
 - **RAM (M22):** medir el agente con todo desplegado (`kubectl -n kube-system top pods -l app.kubernetes.io/name=tetragon`).
-- **Simulacro (N06):** detectar con esta política, aislar el pod e informar.

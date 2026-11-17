@@ -96,7 +96,7 @@ Hay cuatro fronteras: **internet → Cloudflare**, **Cloudflare → red del lab*
 | T | Tag `:latest` que cambia sin control | ValidatingAdmissionPolicy rechaza `:latest`; CI hace bump del tag | 🔄 N07, N01 |
 | I | Vulnerabilidades conocidas en la imagen | Trivy en el CI, falla si hay críticas | 🔄 R05, N01 |
 | E / I | Movimiento lateral entre pods | NetworkPolicies default-deny; Hubble muestra lo bloqueado | ✅ R13, R15 |
-| R | Shell dentro de un pod sin que nadie se entere | Tetragon detecta `kubectl exec` / shell | ✅ N05 |
+| R | Shell dentro de un pod sin que nadie se entere | Tetragon detecta `kubectl exec` / shell; [simulacro de respuesta](simulacro-incidente.md) | ✅ N05, N06 |
 | D | Un pod consume todo el nodo | Limits obligatorios (N07) | 🔄 N07 |
 
 ## Riesgos aceptados (resumen)

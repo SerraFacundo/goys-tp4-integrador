@@ -1,0 +1,54 @@
+
+=== 01:02:35 0. Estado inicial
+pod=redis-5465845bbb-c5nfx nodo=wk-01
+NAME         VALID
+cuarentena   True
+app: 200
+
+=== 01:02:36 1. Ataque: shell en redis
+uid=999(redis) gid=999(ping) groups=999(ping)
+root:x:0:0:root:/root:/bin/sh
+bin:x:1:1:bin:/bin:/sbin/nologin
+daemon:x:2:2:daemon:/sbin:/sbin/nologin
+api=1
+internet=1
+
+=== 01:02:40 2. Esperando la detección (ventana 1)
+
+=== 01:03:33 2. Detección confirmada
+
+=== 01:03:33 3. Investigación
+NAME                     READY   STATUS    RESTARTS      AGE   IP           NODE    NOMINATED NODE   READINESS GATES
+redis-5465845bbb-c5nfx   1/1     Running   1 (29h ago)   47h   10.42.1.40   wk-01   <none>           <none>
+Nov 17 04:02:36.819: app/redis-5465845bbb-c5nfx:44837 (ID:11731) <> app/api-dfc8f4bd6-5dswx:8080 (ID:12095) policy-verdict:none EGRESS DENIED (TCP Flags: SYN)
+Nov 17 04:02:36.819: app/redis-5465845bbb-c5nfx:44837 (ID:11731) <> app/api-dfc8f4bd6-5dswx:8080 (ID:12095) Policy denied DROPPED (TCP Flags: SYN)
+Nov 17 04:02:37.794: app/redis-5465845bbb-c5nfx:39997 (ID:11731) <> 1.1.1.1:443 (world) policy-verdict:none EGRESS DENIED (TCP Flags: SYN)
+Nov 17 04:02:37.794: app/redis-5465845bbb-c5nfx:39997 (ID:11731) <> 1.1.1.1:443 (world) Policy denied DROPPED (TCP Flags: SYN)
+Nov 17 04:02:38.803: app/redis-5465845bbb-c5nfx:39997 (ID:11731) <> 1.1.1.1:443 (world) policy-verdict:none EGRESS DENIED (TCP Flags: SYN)
+Nov 17 04:02:38.803: app/redis-5465845bbb-c5nfx:39997 (ID:11731) <> 1.1.1.1:443 (world) Policy denied DROPPED (TCP Flags: SYN)
+PID   USER     TIME  COMMAND
+    1 redis     5:24 redis-server *:6379
+64880 redis     0:00 ps
+Evidencia guardada fuera del repo: C:\Users\Manuel\Desktop\evidencia-redis-5465845bbb-c5nfx.txt
+
+=== 01:03:34 4. Aislamiento: cuarentena
+pod/redis-5465845bbb-c5nfx labeled
+app con redis aislado: 200
+
+=== 01:03:43 5. Recuperación: redis nuevo
+pod/redis-5465845bbb-c5nfx unlabeled
+app: 200 (después de unos 10 s)
+
+=== 01:03:54 5. App de nuevo en 200
+NAME                     READY   STATUS    RESTARTS      AGE   CUARENTENA   NAME
+api-dfc8f4bd6-5dswx      1/1     Running   0             27h                api
+api-dfc8f4bd6-bp8rc      1/1     Running   0             27h                api
+redis-5465845bbb-c5nfx   1/1     Running   1 (29h ago)   47h   true         
+redis-5465845bbb-knjtn   1/1     Running   0             11s                redis
+
+=== 01:03:54 6. Cierre
+1
+ reinicios del contenedor en cuarentena
+pod "redis-5465845bbb-c5nfx" deleted from app namespace
+
+=== 01:04:38 Fin
